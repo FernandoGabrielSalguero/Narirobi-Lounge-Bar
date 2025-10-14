@@ -3,22 +3,6 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Iniciar sesión correctamente
-require_once __DIR__ . '/../../core/SessionManager.php';
-SessionManager::start();
-
-// Verificar si el usuario está logueado
-$user = SessionManager::getUser();
-if (!$user) {
-    header("Location: /index.php?expired=1");
-    exit;
-}
-
-// Verificar rol
-if (!isset($user['role']) || $user['role'] !== 'admin') {
-    die("🚫 Acceso restringido: esta página es solo para usuarios Administrador.");
-}
-
 // Opcional: datos del usuario
 $usuario = $user['username'] ?? 'Sin usuario';
 $email = $user['email'] ?? 'Sin email';
