@@ -60,15 +60,18 @@ final class AuthModel
     /**
      * Devuelve array con datos mínimos del usuario o null si no existe.
      */
-    public function findUserByUsername(string $usuario): ?array
-    {
-        $sql = "SELECT id, usuario, contrasena, rol FROM usuarios WHERE usuario = :usuario LIMIT 1";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->bindValue(':usuario', $usuario, PDO::PARAM_STR);
-        $stmt->execute();
-        $row = $stmt->fetch();
-        return $row ?: null;
-    }
+public function findUserByUsername(string $usuario): ?array
+{
+    $sql = "SELECT id, usuario, contrasena, rol
+            FROM usuarios
+            WHERE LOWER(usuario) = LOWER(:usuario)
+            LIMIT 1";
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->bindValue(':usuario', trim($usuario), PDO::PARAM_STR);
+    $stmt->execute();
+    $row = $stmt->fetch();
+    return $row ?: null;
+}
 
     /**
      * (Opcional) Auditar último login; ignora error si la columna no existe.
