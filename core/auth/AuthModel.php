@@ -62,12 +62,17 @@ final class AuthModel
      */
 public function findUserByUsername(string $usuario): ?array
 {
+    // Normaliza entrada
+    $u = trim($usuario);
+
+    // Busca por usuario (login) o por nombre, en forma case-insensitive
     $sql = "SELECT id, usuario, contrasena, rol
             FROM usuarios
-            WHERE LOWER(usuario) = LOWER(:usuario)
+            WHERE LOWER(usuario) = LOWER(:u)
+               OR LOWER(nombre)  = LOWER(:u)
             LIMIT 1";
     $stmt = $this->pdo->prepare($sql);
-    $stmt->bindValue(':usuario', trim($usuario), PDO::PARAM_STR);
+    $stmt->bindValue(':u', $u, PDO::PARAM_STR);
     $stmt->execute();
     $row = $stmt->fetch();
     return $row ?: null;

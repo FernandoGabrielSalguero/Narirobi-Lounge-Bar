@@ -45,68 +45,76 @@
       const host = document.getElementById('modalHost');
       let modalEl = null;
 
-      async function ensureModalLoaded() {
-        if (modalEl) return;
-        const resp = await fetch('core/auth/AuthController.php?action=view_login', { credentials: 'same-origin' });
-        const html = await resp.text();
-        host.innerHTML = html;
-        modalEl = document.getElementById('modal');
-        wireUpModal();
-      }
+async function ensureModalLoadedAndOpen() {
+  if (!modalEl) {
+    const resp = await fetch('/core/auth/AuthController.php?action=view_login', { credentials: 'same-origin' });
+    const html = await resp.text();
+    host.innerHTML = html;
+    modalEl = document.getElementById('modal');
+    wireUpModal();
+  }
+  // abrir inmediatamente en el primer click
+  openModal();
+}
 
       function wireUpModal() {
-        const form = document.getElementById('loginForm');
-        const cancelar = document.getElementById('btnCancelar');
-        const usuario = document.getElementById('usuario');
-        const pass = document.getElementById('contrasena');
+  const form = document.getElementById('loginForm');
+  const cancelar = document.getElementById('btnCancelar');
+  const usuario = document.getElementById('usuario');
+  const pass = document.getElementById('contrasena');
 
-        function openModal() {
-          modalEl.classList.remove('hidden');
-          openBtn.setAttribute('aria-expanded', 'true');
-          setTimeout(() => usuario.focus(), 0);
-        }
-        function closeModal() {
-          modalEl.classList.add('hidden');
-          openBtn.setAttribute('aria-expanded', 'false');
-          openBtn.focus();
-        }
+  // Hacemos visibles open/close fuera del closure para poder llamarlas tras cargar el modal
+  window.openModal = function () {
+    modalEl.classList.remove('hidden');
+    openBtn.setAttribute('aria-expanded', 'true');
+    setTimeout(() => usuario.focus(), 0);
+  };
+  window.closeModal = function () {
+    modalEl.classList.add('hidden');
+    openBtn.setAttribute('aria-expanded', 'false');
+    openBtn.focus();
+  };
 
-        openBtn.addEventListener('click', openModal);
-        cancelar.addEventListener('click', closeModal);
-        modalEl.addEventListener('click', (e) => { if (e.target === modalEl) closeModal(); });
-        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modalEl.classList.contains('hidden')) closeModal(); });
+  cancelar.addEventListener('click', window.closeModal);
+  // Cerrar al clickear fuera del contenido
+  modalEl.addEventListener('click', (e) => { if (e.target === modalEl) window.closeModal(); });
+  // Cerrar con Escape
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modalEl.classList.contains('hidden')) window.closeModal(); });
 
-        form.addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const data = { usuario: usuario.value.trim(), contrasena: pass.value };
-          if (!data.usuario || !data.contrasena) {
-            if (typeof showAlert === 'function') showAlert('info', 'Completá usuario y contraseña.');
-            return;
-          }
-          try {
-            const resp = await fetch('core/auth/AuthController.php?action=login', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(data),
-              credentials: 'same-origin'
-            });
-            const json = await resp.json();
-            if (json.ok) {
-              if (typeof showAlert === 'function') showAlert('success', '¡Operación completada con éxito!');
-              window.location.href = json.data.redirect;
-            } else {
-              if (typeof showAlert === 'function') showAlert('error', json.error || 'Ha ocurrido un error inesperado.');
-            }
-          } catch (err) {
-            if (typeof showAlert === 'function') showAlert('error', 'Error de red o servidor no disponible.');
-          }
-        });
-
-        // expone para compatibilidad
-        window.closeModal = closeModal;
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = { usuario: usuario.value.trim(), contrasena: pass.value };
+    if (!data.usuario || !data.contrasena) {
+      if (typeof showAlert === 'function') showAlert('info', 'Completá usuario y contraseña.');
+      return;
+    }
+    try {
+      const resp = await fetch('/core/auth/AuthController.php?action=login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'same-origin'
+      });
+      // Si el servidor devolvió 401, intentar leer JSON para mostrar mensaje; si no es JSON, armar uno básico
+      let json;
+      try { json = await resp.json(); } catch (_) { json = { ok:false, error: 'Usuario o contraseña incorrectos.' }; }
+      if (resp.ok && json.ok) {
+        if (typeof showAlert === 'function') showAlert('success', '¡Operación completada con éxito!');
+        window.location.href = json.data.redirect;
+      } else {
+        if (typeof showAlert === 'function') showAlert('error', json.error || 'Usuario o contraseña incorrectos.');
       }
+    } catch (err) {
+      if (typeof showAlert === 'function') showAlert('error', 'Error de red o servidor no disponible.');
+    }
+  });
+}
 
-      openBtn.addEventListener('click', ensureModalLoaded, { once: true });
+// Reemplaza el once anterior: carga e inmediatamente abre el modal en el primer click
+openBtn.addEventListener('click', ensureModalLoadedAndOpen, { once: true });
+// En clicks subsiguientes, si el modal ya está cargado, sólo lo abre
+openBtn.addEventListener('click', () => modalEl && window.openModal());
+
     })();
   </script>
 </body>

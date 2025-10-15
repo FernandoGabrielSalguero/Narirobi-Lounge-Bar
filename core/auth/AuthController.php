@@ -32,8 +32,11 @@ try {
  */
 function handleLogin(): void
 {
-    $inputRaw = file_get_contents('php://input') ?: '';
-    $data = json_decode($inputRaw, true, 512, JSON_THROW_ON_ERROR);
+$inputRaw = file_get_contents('php://input') ?: '';
+$data = json_decode($inputRaw, true);
+if (!is_array($data)) {
+    AuthView::error('Payload inválido.', 400);
+}
 
     $usuario    = trim((string)($data['usuario']    ?? ''));
     $contrasena = (string)($data['contrasena'] ?? '');
