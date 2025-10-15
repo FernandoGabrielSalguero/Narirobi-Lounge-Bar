@@ -3,8 +3,6 @@ declare(strict_types=1);
 
 namespace Core\Auth;
 
-use Exception;
-
 require_once __DIR__ . '/AuthModel.php';
 require_once __DIR__ . '/AuthView.php';
 
@@ -13,10 +11,16 @@ session_start();
 $action = $_GET['action'] ?? '';
 
 try {
-    if ($action === 'login') {
-        handleLogin();
-    } else {
-        AuthView::error('Acción no soportada.', 404);
+    switch ($action) {
+        case 'view_login':
+            header('Content-Type: text/html; charset=utf-8');
+            echo AuthView::loginModal();
+            exit;
+        case 'login':
+            handleLogin();
+            break;
+        default:
+            AuthView::error('Acción no soportada.', 404);
     }
 } catch (\Throwable $e) {
     AuthView::error('Ocurrió un error inesperado. Inténtalo nuevamente.', 500);
@@ -50,10 +54,10 @@ function handleLogin(): void
     }
 
     // Iniciar sesión mínima
-    $_SESSION['user_id']  = (int)$user['id'];
-    $_SESSION['usuario']  = $user['usuario'];
-    $_SESSION['rol']      = $user['rol'];
-    $_SESSION['logged_in']= true;
+    $_SESSION['user_id']   = (int)$user['id'];
+    $_SESSION['usuario']   = $user['usuario'];
+    $_SESSION['rol']       = $user['rol'];
+    $_SESSION['logged_in'] = true;
 
     // Auditar último login (si existe la columna)
     $model->touchLastLogin((int)$user['id']);

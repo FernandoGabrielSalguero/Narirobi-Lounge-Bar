@@ -56,16 +56,15 @@ final class AuthModel
         return $row ?: null;
     }
 
-    /**
-     * Registra el último login (opcional, por si luego quieres auditar).
-     */
-    public function touchLastLogin(int $userId): void
-    {
-        // Solo si existe la columna; si no, no falla la app.
-        try {
-            $this->pdo->exec("UPDATE usuarios SET ultimo_login = NOW() WHERE id = {$userId}");
-        } catch (\Throwable $e) {
-            // Silencioso: no romper si la columna no existe.
-        }
+public function touchLastLogin(int $userId): void
+{
+    try {
+        $stmt = $this->pdo->prepare("UPDATE usuarios SET ultimo_login = NOW() WHERE id = :id");
+        $stmt->bindValue(':id', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+    } catch (\Throwable $e) {
+        // Silencioso: no romper si la columna no existe.
     }
+}
+
 }
