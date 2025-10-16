@@ -138,7 +138,7 @@ $email = $user['email'] ?? 'Sin email';
                             <button type="button" class="btn btn-cancelar" id="btn-reestablecer">Reestablecer</button>
                         </div>
 
-                        
+
                     </form>
                 </div>
 
@@ -156,6 +156,60 @@ $email = $user['email'] ?? 'Sin email';
                         </div>
                     </div>
                 </div>
+
+                <!-- Categorias y sub categorias -->
+                <div class="card" id="card-crud-taxonomia">
+                    <h3>Categorías, Subcategorías y Relaciones</h3>
+
+                    <!-- Controles de alta rápida -->
+                    <div class="form-grid grid-3" role="region" aria-label="ABM rápido">
+                        <form id="form-add-categoria" class="input-group" autocomplete="off">
+                            <label for="categoria_nombre">Nueva categoría</label>
+                            <div class="input-icon input-icon-name">
+                                <input type="text" id="categoria_nombre" name="nombre" placeholder="Ej: Tragos" required aria-required="true" />
+                            </div>
+                            <button type="submit" class="btn btn-aceptar" aria-label="Crear categoría">Crear</button>
+                        </form>
+
+                        <form id="form-add-subcategoria" class="input-group" autocomplete="off">
+                            <label for="subcategoria_nombre">Nueva subcategoría</label>
+                            <div class="input-icon input-icon-name">
+                                <input type="text" id="subcategoria_nombre" name="nombre" placeholder="Ej: Clásicos" required aria-required="true" />
+                            </div>
+                            <button type="submit" class="btn btn-aceptar" aria-label="Crear subcategoría">Crear</button>
+                        </form>
+
+                        <div class="input-group" aria-live="polite">
+                            <label for="filtro_categorias">Filtrar categorías</label>
+                            <div class="input-icon input-icon-name">
+                                <input type="text" id="filtro_categorias" placeholder="Escribí para filtrar por nombre" />
+                            </div>
+                            <button type="button" id="btn-refrescar-taxonomia" class="btn btn-info" aria-label="Refrescar datos">Refrescar</button>
+                        </div>
+                    </div>
+
+                    <!-- Tabla Categorías + Subcategorías (checkbox en desplegable) -->
+                    <div class="card tabla-card" style="margin-top:1rem;">
+                        <h2>Relaciones Categoría ↔ Subcategorías</h2>
+                        <div class="tabla-wrapper">
+                            <table class="data-table" id="tabla-categorias">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Categoría</th>
+                                        <th>Estado</th>
+                                        <th>Subcategorías (asignar/desasignar)</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-categorias">
+                                    <!-- filas via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
 
             </section>
 
@@ -225,6 +279,65 @@ $email = $user['email'] ?? 'Sin email';
 
                 #color_picker_mount .pcr-app .pcr-result {
                     width: 100%
+                }
+
+                /* === Taxonomía: dropdown de subcategorías === */
+                .subs-dropdown {
+                    position: relative;
+                    display: inline-block;
+                }
+
+                .subs-panel {
+                    position: absolute;
+                    top: 100%;
+                    left: 0;
+                    z-index: 50;
+                    min-width: 260px;
+                    max-height: 280px;
+                    overflow: auto;
+                    background: #fff;
+                    border: 1px solid rgba(0, 0, 0, .08);
+                    border-radius: 10px;
+                    box-shadow: 0 8px 18px rgba(0, 0, 0, .12);
+                    padding: .5rem;
+                    transform-origin: top left;
+                    transform: scale(.98);
+                    opacity: 0;
+                    pointer-events: none;
+                    transition: opacity .15s ease, transform .15s ease;
+                }
+
+                .subs-panel.open {
+                    opacity: 1;
+                    transform: scale(1);
+                    pointer-events: auto;
+                }
+
+                .subs-item {
+                    display: flex;
+                    align-items: center;
+                    gap: .5rem;
+                    padding: .35rem .25rem;
+                    border-radius: .5rem;
+                }
+
+                .subs-item:hover {
+                    background: #f8fafc;
+                }
+
+                .chip {
+                    display: inline-block;
+                    padding: .15rem .5rem;
+                    border-radius: 999px;
+                    border: 1px solid rgba(0, 0, 0, .08);
+                    font-size: .85rem;
+                    background: #fff;
+                }
+
+                .acciones-grid {
+                    display: flex;
+                    gap: .5rem;
+                    flex-wrap: wrap;
                 }
             </style>
 
@@ -443,6 +556,414 @@ $email = $user['email'] ?? 'Sin email';
 
                     // Carga inicial
                     loadColors();
+                })();
+            </script>
+
+            <!-- Logica de las categorias y subcategorias -->
+            <script type="module">
+                (() => {
+                    const $ = (sel, ctx = document) => ctx.querySelector(sel);
+                    const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
+                    const API = '../../controllers/admin_dashboard_controller.php';
+
+                    // Helpers
+                    const j = (u, opt = {}) => fetch(u, opt).then(r => r.json());
+                    const enc = (obj) => JSON.stringify(obj);
+                    const headersJSON = {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    };
+
+                    // --- Estado en memoria ---
+                    let categorias = []; // [{id,nombre,estado,created_at,updated_at}]
+                    let subcategorias = []; // [{id,nombre,estado,created_at,updated_at}]
+
+                    // --- UI refs ---
+                    const tbody = $('#tbody-categorias');
+                    const filtroCategorias = $('#filtro_categorias');
+
+                    // --- API ---
+                    async function listarCategorias() {
+                        const res = await j(`${API}?r=categories`, {
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        });
+                        if (!res.ok) throw new Error(res.error || 'No se pudieron listar categorías');
+                        categorias = res.data;
+                    }
+                    async function listarSubcategorias() {
+                        const res = await j(`${API}?r=subcategories`, {
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        });
+                        if (!res.ok) throw new Error(res.error || 'No se pudieron listar subcategorías');
+                        subcategorias = res.data;
+                    }
+                    async function crearCategoria(nombre) {
+                        const res = await j(`${API}?r=categories`, {
+                            method: 'POST',
+                            headers: headersJSON,
+                            body: enc({
+                                op: 'create',
+                                nombre
+                            })
+                        });
+                        if (!res.ok) throw new Error(res.error || 'No se pudo crear la categoría');
+                        return res.data;
+                    }
+                    async function crearSubcategoria(nombre) {
+                        const res = await j(`${API}?r=subcategories`, {
+                            method: 'POST',
+                            headers: headersJSON,
+                            body: enc({
+                                op: 'create',
+                                nombre
+                            })
+                        });
+                        if (!res.ok) throw new Error(res.error || 'No se pudo crear la subcategoría');
+                        return res.data;
+                    }
+                    async function actualizarCategoria(id, payload) {
+                        const res = await j(`${API}?r=categories`, {
+                            method: 'POST',
+                            headers: headersJSON,
+                            body: enc({
+                                op: 'update',
+                                id,
+                                ...payload
+                            })
+                        });
+                        if (!res.ok) throw new Error(res.error || 'No se pudo actualizar la categoría');
+                        return res.data;
+                    }
+                    async function eliminarCategoria(id) {
+                        const res = await j(`${API}?r=categories`, {
+                            method: 'POST',
+                            headers: headersJSON,
+                            body: enc({
+                                op: 'delete',
+                                id
+                            })
+                        });
+                        if (!res.ok) throw new Error(res.error || 'No se pudo eliminar la categoría');
+                        return res.data;
+                    }
+                    async function eliminarSubcategoria(id) {
+                        const res = await j(`${API}?r=subcategories`, {
+                            method: 'POST',
+                            headers: headersJSON,
+                            body: enc({
+                                op: 'delete',
+                                id
+                            })
+                        });
+                        if (!res.ok) throw new Error(res.error || 'No se pudo eliminar la subcategoría');
+                        return res.data;
+                    }
+                    async function actualizarSubcategoria(id, payload) {
+                        const res = await j(`${API}?r=subcategories`, {
+                            method: 'POST',
+                            headers: headersJSON,
+                            body: enc({
+                                op: 'update',
+                                id,
+                                ...payload
+                            })
+                        });
+                        if (!res.ok) throw new Error(res.error || 'No se pudo actualizar la subcategoría');
+                        return res.data;
+                    }
+                    async function relacionesDeCategoria(category_id) {
+                        const res = await j(`${API}?r=relations&category_id=${encodeURIComponent(category_id)}`, {
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        });
+                        if (!res.ok) throw new Error(res.error || 'No se pudieron cargar relaciones');
+                        return res.data; // {assigned:[], available:[]}
+                    }
+                    async function link(category_id, subcategory_id) {
+                        const res = await j(`${API}?r=relations`, {
+                            method: 'POST',
+                            headers: headersJSON,
+                            body: enc({
+                                op: 'link',
+                                category_id,
+                                subcategory_id
+                            })
+                        });
+                        if (!res.ok) throw new Error(res.error || 'No se pudo asociar');
+                        return res.data;
+                    }
+                    async function unlink(category_id, subcategory_id) {
+                        const res = await j(`${API}?r=relations`, {
+                            method: 'POST',
+                            headers: headersJSON,
+                            body: enc({
+                                op: 'unlink',
+                                category_id,
+                                subcategory_id
+                            })
+                        });
+                        if (!res.ok) throw new Error(res.error || 'No se pudo desasociar');
+                        return res.data;
+                    }
+
+                    // --- Render ---
+                    function filtrar(list, term) {
+                        if (!term) return list;
+                        const t = term.trim().toLowerCase();
+                        return list.filter(c => c.nombre.toLowerCase().includes(t));
+                    }
+
+                    function renderCategorias() {
+                        const data = filtrar(categorias, filtroCategorias.value);
+                        tbody.innerHTML = '';
+                        if (!data.length) {
+                            tbody.innerHTML = `<tr><td colspan="5">Sin resultados.</td></tr>`;
+                            return;
+                        }
+                        data.forEach((c, idx) => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                    <td>${idx+1}</td>
+                    <td>
+                        <div class="input-group" style="margin:0">
+                            <label for="cat_${c.id}" class="sr-only">Editar nombre</label>
+                            <div class="input-icon input-icon-name">
+                                <input type="text" id="cat_${c.id}" value="${c.nombre}" aria-label="Nombre de categoría ${c.nombre}" />
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge ${c.estado ? 'success' : 'warning'}">${c.estado ? 'Activa' : 'Inactiva'}</span>
+                    </td>
+                    <td>
+                        <div class="subs-dropdown">
+                            <button class="btn btn-info btn-subs" data-id="${c.id}" aria-haspopup="true" aria-expanded="false">Gestionar subcategorías</button>
+                            <div class="subs-panel" id="subs_panel_${c.id}" role="menu" aria-label="Subcategorías de ${c.nombre}">
+                                <div class="subs-list" data-category="${c.id}">
+                                    <!-- items por AJAX -->
+                                    <div class="input-group" style="margin:.25rem 0;">
+                                        <label for="buscar_subs_${c.id}">Buscar</label>
+                                        <div class="input-icon input-icon-name">
+                                            <input type="text" id="buscar_subs_${c.id}" placeholder="Filtrar subcategorías" />
+                                        </div>
+                                    </div>
+                                    <div class="subs-contenedor" id="subs_contenedor_${c.id}"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="acciones-grid">
+                            <button class="btn btn-aceptar btn-guardar-cat" data-id="${c.id}">Guardar</button>
+                            <button class="btn btn-cancelar btn-toggle-cat" data-id="${c.id}">${c.estado ? 'Desactivar' : 'Activar'}</button>
+                            <button class="btn btn-cancelar btn-eliminar-cat" data-id="${c.id}">Eliminar</button>
+                        </div>
+                    </td>
+                `;
+                            tbody.appendChild(tr);
+                        });
+                    }
+
+                    async function abrirPanelSubs(categoryId, btn, panel) {
+                        try {
+                            panel.classList.add('open'); // pre-animación
+                            const data = await relacionesDeCategoria(categoryId);
+                            const cont = $(`#subs_contenedor_${categoryId}`);
+                            const inputSearch = $(`#buscar_subs_${categoryId}`);
+                            // Armo lista unificada con estado checked
+                            // Supuesto: muestro TODAS (asignadas + no asignadas) para permitir (des)asignar.
+                            const m = new Map();
+                            data.available.forEach(s => m.set(s.id, {
+                                ...s,
+                                checked: false
+                            }));
+                            data.assigned.forEach(s => m.set(s.id, {
+                                ...s,
+                                checked: true
+                            }));
+                            const list = Array.from(m.values()).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+
+                            const renderList = (term = '') => {
+                                const t = term.trim().toLowerCase();
+                                cont.innerHTML = '';
+                                list.filter(x => !t || x.nombre.toLowerCase().includes(t))
+                                    .forEach(s => {
+                                        const row = document.createElement('div');
+                                        row.className = 'subs-item';
+                                        row.innerHTML = `
+                                <input type="checkbox" id="sc_${categoryId}_${s.id}" ${s.checked ? 'checked' : ''} data-cat="${categoryId}" data-sub="${s.id}" aria-label="${s.nombre}">
+                                <label for="sc_${categoryId}_${s.id}" style="flex:1;">${s.nombre}</label>
+                                <span class="chip">${s.checked ? 'Asignada' : 'Disponible'}</span>
+                            `;
+                                        cont.appendChild(row);
+                                    });
+                            };
+                            renderList();
+                            inputSearch.addEventListener('input', (e) => renderList(e.target.value), {
+                                once: false
+                            });
+
+                            // Marcar/desmarcar
+                            cont.addEventListener('change', async (e) => {
+                                const el = e.target;
+                                if (el && el.matches('input[type="checkbox"]')) {
+                                    const cat = parseInt(el.dataset.cat, 10);
+                                    const sub = parseInt(el.dataset.sub, 10);
+                                    try {
+                                        if (el.checked) {
+                                            await link(cat, sub);
+                                            showAlert('success', 'Subcategoría asignada.');
+                                        } else {
+                                            await unlink(cat, sub);
+                                            showAlert('info', 'Subcategoría desasignada.');
+                                        }
+                                    } catch (err) {
+                                        // revertir UI si falla
+                                        el.checked = !el.checked;
+                                        showAlert('error', err.message || 'Error actualizando relación.');
+                                    }
+                                }
+                            }, {
+                                once: false
+                            });
+
+                            // Toggle ARIA
+                            btn.setAttribute('aria-expanded', 'true');
+                            panel.classList.add('open');
+                        } catch (err) {
+                            panel.classList.remove('open');
+                            showAlert('error', err.message || 'No se pudo cargar subcategorías.');
+                        }
+                    }
+
+                    function cerrarTodosLosPanels() {
+                        $$('.subs-panel.open').forEach(p => {
+                            p.classList.remove('open');
+                            const btn = p.previousElementSibling;
+                            if (btn) btn.setAttribute('aria-expanded', 'false');
+                        });
+                    }
+
+                    // --- Eventos globales ---
+                    document.addEventListener('click', (e) => {
+                        const btn = e.target.closest('.btn-subs');
+                        if (btn) {
+                            const id = parseInt(btn.dataset.id, 10);
+                            const panel = $(`#subs_panel_${id}`);
+                            const isOpen = panel.classList.contains('open');
+                            cerrarTodosLosPanels();
+                            if (!isOpen) abrirPanelSubs(id, btn, panel);
+                            return;
+                        }
+                        // Cerrar si clic fuera
+                        if (!e.target.closest('.subs-dropdown')) cerrarTodosLosPanels();
+                    });
+
+                    // Guardar/activar/eliminar categoría
+                    document.addEventListener('click', async (e) => {
+                        const bGuardar = e.target.closest('.btn-guardar-cat');
+                        const bToggle = e.target.closest('.btn-toggle-cat');
+                        const bEliminar = e.target.closest('.btn-eliminar-cat');
+                        if (bGuardar) {
+                            const id = parseInt(bGuardar.dataset.id, 10);
+                            const input = $(`#cat_${id}`);
+                            const nombre = input.value.trim();
+                            if (!nombre) return showAlert('error', 'El nombre no puede estar vacío.');
+                            try {
+                                await actualizarCategoria(id, {
+                                    nombre
+                                });
+                                showAlert('success', 'Categoría actualizada.');
+                                await listarCategorias();
+                                renderCategorias();
+                            } catch (err) {
+                                showAlert('error', err.message);
+                            }
+                        }
+                        if (bToggle) {
+                            const id = parseInt(bToggle.dataset.id, 10);
+                            const cat = categorias.find(x => x.id === id);
+                            if (!cat) return;
+                            try {
+                                await actualizarCategoria(id, {
+                                    estado: cat.estado ? 0 : 1
+                                });
+                                showAlert('info', 'Estado de la categoría actualizado.');
+                                await listarCategorias();
+                                renderCategorias();
+                            } catch (err) {
+                                showAlert('error', err.message);
+                            }
+                        }
+                        if (bEliminar) {
+                            const id = parseInt(bEliminar.dataset.id, 10);
+                            if (!confirm('¿Eliminar categoría? Esto quitará sus relaciones.')) return;
+                            try {
+                                await eliminarCategoria(id);
+                                showAlert('info', 'Categoría eliminada.');
+                                await listarCategorias();
+                                renderCategorias();
+                            } catch (err) {
+                                showAlert('error', err.message);
+                            }
+                        }
+                    });
+
+                    // Altas rápidas
+                    $('#form-add-categoria').addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        const nombre = $('#categoria_nombre').value.trim();
+                        if (!nombre) return showAlert('error', 'Ingresá un nombre.');
+                        try {
+                            await crearCategoria(nombre);
+                            $('#categoria_nombre').value = '';
+                            await listarCategorias();
+                            renderCategorias();
+                            showAlert('success', 'Categoría creada.');
+                        } catch (err) {
+                            showAlert('error', err.message);
+                        }
+                    });
+
+                    $('#form-add-subcategoria').addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        const nombre = $('#subcategoria_nombre').value.trim();
+                        if (!nombre) return showAlert('error', 'Ingresá un nombre.');
+                        try {
+                            await crearSubcategoria(nombre);
+                            $('#subcategoria_nombre').value = '';
+                            showAlert('success', 'Subcategoría creada.');
+                        } catch (err) {
+                            showAlert('error', err.message);
+                        }
+                    });
+
+                    // Filtro y refresco
+                    filtroCategorias.addEventListener('input', renderCategorias);
+                    $('#btn-refrescar-taxonomia').addEventListener('click', async () => {
+                        try {
+                            await Promise.all([listarCategorias(), listarSubcategorias()]);
+                            renderCategorias();
+                            showAlert('info', 'Datos refrescados.');
+                        } catch (err) {
+                            showAlert('error', err.message);
+                        }
+                    });
+
+                    // Inicial
+                    (async function init() {
+                        try {
+                            await Promise.all([listarCategorias(), listarSubcategorias()]);
+                            renderCategorias();
+                        } catch (err) {
+                            showAlert('error', err.message);
+                        }
+                    })();
                 })();
             </script>
 
