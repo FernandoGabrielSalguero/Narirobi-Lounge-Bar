@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 class AdminCartaModel
@@ -23,7 +24,9 @@ class AdminCartaModel
     public function listSubcategoriasByCategoria(int $categoriaId): array
     {
         // Si categoriaId = 0, devolver vacío
-        if ($categoriaId <= 0) { return []; }
+        if ($categoriaId <= 0) {
+            return [];
+        }
 
         $sql = "SELECT s.id, s.nombre
                 FROM categoria_subcategoria cs
