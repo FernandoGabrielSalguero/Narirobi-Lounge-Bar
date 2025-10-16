@@ -34,21 +34,21 @@ $email = $user['email'] ?? 'Sin email';
             </div>
             <nav class="sidebar-menu">
                 <ul>
-                    <li onclick="location.href='admin_dashboard_view.php'">
-                        <span class="material-icons" style="color: #5b21b6;">home</span><span class="link-text">Inicio</span>
-                    </li>
-                    <li onclick="location.href='admin_carta_view.php'">
-                        <span class="material-icons" style="color: #5b21b6;">person</span><span class="link-text">Carta</span>
-                    </li>
-                    <li onclick="location.href='admin_gift_card_view.php'">
-                        <span class="material-icons" style="color: #5b21b6;">person</span><span class="link-text">Gift Card</span>
-                    </li>
-                    <li onclick="location.href='admin_reservas_view.php'">
-                        <span class="material-icons" style="color: #5b21b6;">person</span><span class="link-text">Reservas</span>
-                    </li>
-                    <li onclick="location.href='../../../logout.php'">
-                        <span class="material-icons" style="color: red;">logout</span><span class="link-text">Salir</span>
-                    </li>
+<li onclick="location.href='admin_dashboard_view.php'">
+    <span class="material-icons" style="color:#5b21b6;">home</span><span class="link-text">Inicio</span>
+</li>
+<li onclick="location.href='admin_carta_view.php'">
+    <span class="material-icons" style="color:#5b21b6;">restaurant_menu</span><span class="link-text">Carta</span>
+</li>
+<li onclick="location.href='admin_gift_card_view.php'">
+    <span class="material-icons" style="color:#5b21b6;">card_giftcard</span><span class="link-text">Gift Card</span>
+</li>
+<li onclick="location.href='admin_reservas_view.php'">
+    <span class="material-icons" style="color:#5b21b6;">event</span><span class="link-text">Reservas</span>
+</li>
+<li onclick="location.href='../../logout.php'">
+    <span class="material-icons" style="color:red;">logout</span><span class="link-text">Salir</span>
+</li>
                 </ul>
             </nav>
             <div class="sidebar-footer">
@@ -68,7 +68,7 @@ $email = $user['email'] ?? 'Sin email';
 
             <section class="content">
                 <div class="card">
-                    <h2>Hola 👋 <?= htmlspecialchars($usuario) ?></h2>
+                    <h2>Hola 👋</h2>
                     <p>En esta página, manejamos las variables de entorno de la página</p>
                 </div>
 
@@ -94,7 +94,7 @@ $email = $user['email'] ?? 'Sin email';
         </div>
     </div>
 
-    <script src="../../views/partials/spinner-global.js"></script>
+    <script src="/views/partial/spinner-global.js" defer></script>
 
     <script>
         console.log(<?php echo json_encode($_SESSION); ?>);
