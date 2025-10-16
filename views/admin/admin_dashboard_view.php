@@ -113,6 +113,8 @@ $email = $user['email'] ?? 'Sin email';
 
                         </div>
 
+                        <br>
+
                         <div class="form-grid grid-3" role="region" aria-label="Vista previa de colores">
                             <div class="preview-area" id="preview_area" aria-live="polite">
                                 <p>
