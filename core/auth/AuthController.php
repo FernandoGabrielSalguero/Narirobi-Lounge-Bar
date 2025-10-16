@@ -81,9 +81,9 @@ function handleLogin(): void
 
     $model->touchLastLogin((int)$user['id']);
 
-    $redirect = '/views/colaborador/colaborador_dashboard.php';
+    $redirect = '/views/colaborador/colaborador_dashboard_view.php';
     if ($user['rol'] === 'admin') {
-        $redirect = '/views/admin/admin_dashboard.php';
+        $redirect = '/views/admin/admin_dashboard_view.php';
     }
 
     serverLog('INFO', 'Login OK, redirigiendo', ['redirect' => $redirect, 'rol' => $user['rol']]);
