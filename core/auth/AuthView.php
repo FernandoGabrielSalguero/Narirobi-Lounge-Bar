@@ -33,7 +33,7 @@ final class AuthView
     public static function loginModal(): string
     {
         return <<<HTML
-<div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDesc" style="position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.5);z-index:1000;">
+<div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDesc" style="position:fixed;inset:0;/* display:grid;  <-- lo sacamos para que .hidden gane */place-items:center;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;">
   <div class="modal-content" style="width:min(92vw,400px);background:#111;color:#fff;border-radius:12px;padding:1.25rem;box-shadow:0 10px 40px rgba(0,0,0,.6);">
     <h3 id="modalTitle" style="margin-top:0;">Iniciar sesión</h3>
     <p id="modalDesc" class="sr-only" style="position:absolute;left:-9999px;">Ingresá tu usuario y contraseña para continuar.</p>
@@ -61,7 +61,7 @@ final class AuthView
   </div>
 </div>
 <style>
-  .hidden{display:none;}
+  .hidden{display:none !important;}
 </style>
 HTML;
     }

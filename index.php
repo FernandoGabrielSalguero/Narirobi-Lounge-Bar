@@ -157,6 +157,12 @@ declare(strict_types=1); ?>
           log('error', 'Botón Cancelar (#btnCancelar) no encontrado.');
         }
 
+        cancelar.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          window.closeModal();
+        });
+
         // Click fuera del contenido => cerrar
         modalEl.addEventListener('click', (e) => {
           if (e.target === modalEl) {
