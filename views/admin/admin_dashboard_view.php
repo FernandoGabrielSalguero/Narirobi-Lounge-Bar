@@ -95,10 +95,6 @@ $email = $user['email'] ?? 'Sin email';
     </div>
 
     <script src="/views/partial/spinner-global.js" defer></script>
-
-    <script>
-        console.log(<?php echo json_encode($_SESSION); ?>);
-    </script>
 </body>
 
 </html>
