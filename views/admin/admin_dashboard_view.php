@@ -82,6 +82,9 @@ $email = $user['email'] ?? 'Sin email';
                                 <div class="input-icon input-icon-name">
                                     <input type="text" id="color_texto" name="color_texto" placeholder="#111111 o rgb(17,17,17)" aria-describedby="color_texto_help" required />
                                 </div>
+                                <button type="button" class="btn btn-info" id="btn-paleta-texto" aria-controls="modal-color" aria-label="Elegir color de texto">
+                                    <span class="material-icons">palette</span>
+                                </button>
                                 <small id="color_texto_help" class="help">Ej.: #111, #111111 o rgb(17,17,17)</small>
                             </div>
 
@@ -90,6 +93,9 @@ $email = $user['email'] ?? 'Sin email';
                                 <div class="input-icon input-icon-name">
                                     <input type="text" id="color_fondo" name="color_fondo" placeholder="#ffffff o rgb(255,255,255)" aria-describedby="color_fondo_help" required />
                                 </div>
+                                <button type="button" class="btn btn-info" id="btn-paleta-fondo" aria-controls="modal-color" aria-label="Elegir color de fondo">
+                                    <span class="material-icons">palette</span>
+                                </button>
                                 <small id="color_fondo_help" class="help">Ej.: #fff, #ffffff o rgb(255,255,255)</small>
                             </div>
 
@@ -98,46 +104,52 @@ $email = $user['email'] ?? 'Sin email';
                                 <div class="input-icon input-icon-name">
                                     <input type="text" id="color_acento" name="color_acento" placeholder="#7c3aed o rgb(124,58,237)" aria-describedby="color_acento_help" required />
                                 </div>
+                                <button type="button" class="btn btn-info" id="btn-paleta-acento" aria-controls="modal-color" aria-label="Elegir color de acento">
+                                    <span class="material-icons">palette</span>
+                                </button>
                                 <small id="color_acento_help" class="help">Ej.: #7c3aed o rgb(124,58,237)</small>
                             </div>
+
                         </div>
 
                         <div class="form-grid grid-3" role="region" aria-label="Vista previa de colores">
-                            <div class="preview-swatch" id="preview_texto" aria-label="Vista previa texto" tabindex="0">
+                            <div class="preview-area" id="preview_area" aria-live="polite">
+                                <p>
+                                    Este es un <strong>ejemplo</strong> de texto. El
+                                    <span class="hl">resaltado</span> usa el color de acento.
+                                </p>
+                            </div>
+                            <div class="preview-swatch" id="preview_texto" aria-label="Color de texto" tabindex="0">
                                 <span>Texto</span>
                             </div>
-                            <div class="preview-swatch" id="preview_fondo" aria-label="Vista previa fondo" tabindex="0">
+                            <div class="preview-swatch" id="preview_fondo" aria-label="Color de fondo" tabindex="0">
                                 <span>Fondo</span>
                             </div>
-                            <div class="preview-swatch" id="preview_acento" aria-label="Vista previa acento" tabindex="0">
+                            <div class="preview-swatch" id="preview_acento" aria-label="Color de acento" tabindex="0">
                                 <span>Acento</span>
                             </div>
                         </div>
 
                         <div class="form-buttons">
-                            <button type="button" class="btn btn-info" id="btn-aplicar">Aplicar vista previa</button>
                             <button type="submit" class="btn btn-aceptar">Guardar cambios</button>
                             <button type="button" class="btn btn-cancelar" id="btn-reestablecer">Reestablecer</button>
                         </div>
+
                     </form>
                 </div>
-
-                <div class="card-grid grid-4" id="kpis">
-                    <div class="card">
-                        <h3>KPI 1</h3>
-                        <p>Contenido 1</p>
-                    </div>
-                    <div class="card">
-                        <h3>KPI 2</h3>
-                        <p>Contenido 2</p>
-                    </div>
-                    <div class="card">
-                        <h3>KPI 3</h3>
-                        <p>Contenido 3</p>
-                    </div>
-                    <div class="card">
-                        <h3>KPI 4</h3>
-                        <p>Contenido 4</p>
+                <div id="modal-color" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-color-title">
+                    <div class="modal-content">
+                        <h3 id="modal-color-title">Elegí un color</h3>
+                        <div class="input-group">
+                            <label for="color_picker">Selector</label>
+                            <div class="input-icon input-icon-name">
+                                <input type="color" id="color_picker" name="color_picker" value="#000000" />
+                            </div>
+                        </div>
+                        <div class="form-buttons">
+                            <button type="button" class="btn btn-aceptar" id="btn-color-aceptar">Aceptar</button>
+                            <button type="button" class="btn btn-cancelar" id="btn-color-cancelar">Cancelar</button>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -170,6 +182,23 @@ $email = $user['email'] ?? 'Sin email';
                     box-shadow: 0 4px 10px rgba(0, 0, 0, .08)
                 }
 
+                /* Área de ejemplo completa (texto+fondo+resaltado) */
+                .preview-area {
+                    grid-column: 1 / -1;
+                    padding: 16px;
+                    border-radius: 12px;
+                    border: 1px solid rgba(0, 0, 0, .08);
+                    background: #f8fafc;
+                    color: #0f172a
+                }
+
+                .preview-area .hl {
+                    padding: .15rem .35rem;
+                    border-radius: .35rem;
+                    background: #7c3aed;
+                    color: #ffffff
+                }
+
                 /* Evitar FOUC de previews */
                 #preview_texto,
                 #preview_fondo,
@@ -191,14 +220,28 @@ $email = $user['email'] ?? 'Sin email';
                         texto: $("#preview_texto"),
                         fondo: $("#preview_fondo"),
                         acento: $("#preview_acento"),
+                        area: $("#preview_area"),
+                        areaHl: $("#preview_area .hl"),
                     };
 
                     const HEX_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
                     const RGB_RE = /^rgb\(\s*(?:[01]?\d?\d|2[0-4]\d|25[0-5])\s*,\s*(?:[01]?\d?\d|2[0-4]\d|25[0-5])\s*,\s*(?:[01]?\d?\d|2[0-4]\d|25[0-5])\s*\)$/;
 
                     const isValidColor = (v) => HEX_RE.test(v) || RGB_RE.test(v);
-
                     const normalize = (v) => v.trim();
+
+                    // Utilidades de conversión para el selector (que usa #RRGGBB)
+                    const toRgbParts = (v) => v.match(/\d+/g)?.map(n => parseInt(n, 10)) ?? null;
+                    const rgbToHex = (r, g, b) => '#' + [r, g, b].map(n => n.toString(16).padStart(2, '0')).join('');
+                    const hex3To6 = (hex) => '#' + hex.slice(1).split('').map(ch => ch + ch).join('');
+                    const anyToHex = (v) => {
+                        if (HEX_RE.test(v)) return v.length === 4 ? hex3To6(v) : v.toLowerCase();
+                        if (RGB_RE.test(v)) {
+                            const p = toRgbParts(v);
+                            if (p && p.length === 3) return rgbToHex(p[0], p[1], p[2]);
+                        }
+                        return null;
+                    };
 
                     function applyPreview() {
                         const t = normalize(inputs.texto.value);
@@ -208,20 +251,24 @@ $email = $user['email'] ?? 'Sin email';
                         if (isValidColor(t)) {
                             previews.texto.style.color = t;
                             previews.texto.style.background = "#ffffff";
+                            previews.area.style.color = t;
                         }
                         if (isValidColor(f)) {
                             previews.fondo.style.background = f;
                             previews.fondo.style.color = "#0f172a";
+                            previews.area.style.background = f;
                         }
                         if (isValidColor(a)) {
                             previews.acento.style.background = a;
                             previews.acento.style.color = "#ffffff";
+                            previews.areaHl.style.background = a;
+                            previews.areaHl.style.color = "#ffffff";
                         }
                     }
 
                     async function loadColors() {
                         try {
-                            const res = await fetch('admin_dashboard_controller.php', {
+                            const res = await fetch('../../controllers/admin_dashboard_controller.php', {
                                 headers: {
                                     'Accept': 'application/json'
                                 }
@@ -240,18 +287,21 @@ $email = $user['email'] ?? 'Sin email';
                         }
                     }
 
-                    $("#btn-aplicar").addEventListener('click', (e) => {
-                        e.preventDefault();
-                        applyPreview();
-                        showAlert('info', 'Vista previa aplicada (no guardada).');
+                    // Vista previa automática al escribir/pegar
+                    ['input', 'change'].forEach(ev => {
+                        inputs.texto.addEventListener(ev, applyPreview);
+                        inputs.fondo.addEventListener(ev, applyPreview);
+                        inputs.acento.addEventListener(ev, applyPreview);
                     });
 
+                    // Botón Reestablecer
                     $("#btn-reestablecer").addEventListener('click', async (e) => {
                         e.preventDefault();
                         await loadColors();
                         showAlert('info', 'Valores restablecidos.');
                     });
 
+                    // Guardado
                     $("#form-entorno").addEventListener('submit', async (e) => {
                         e.preventDefault();
                         const payload = {
@@ -259,17 +309,15 @@ $email = $user['email'] ?? 'Sin email';
                             color_fondo: normalize(inputs.fondo.value),
                             color_acento: normalize(inputs.acento.value),
                         };
-
-                        // Validación en cliente
                         for (const [k, v] of Object.entries(payload)) {
                             if (!isValidColor(v)) {
                                 showAlert('error', `Valor inválido para ${k.replace('color_', '').toUpperCase()}. Usá #hex o rgb(r,g,b).`);
                                 return;
                             }
                         }
-
                         try {
-                            const res = await fetch('admin_dashboard_controller.php', {
+                            const res = await fetch('../../controllers/admin_dashboard_controller.php', {
+
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -289,10 +337,47 @@ $email = $user['email'] ?? 'Sin email';
                         }
                     });
 
+                    // === Modal selector de color ===
+                    const modal = $("#modal-color");
+                    const picker = $("#color_picker");
+                    let targetInput = null;
+
+                    function openModalFor(inputEl) {
+                        targetInput = inputEl;
+                        const hx = anyToHex(normalize(targetInput.value)) || '#000000';
+                        picker.value = hx;
+                        modal.classList.remove('hidden');
+                        picker.focus();
+                    }
+
+                    function closeModal() {
+                        modal.classList.add('hidden');
+                        targetInput = null;
+                    }
+
+                    // Botones "paleta" por campo
+                    $("#btn-paleta-texto").addEventListener('click', () => openModalFor(inputs.texto));
+                    $("#btn-paleta-fondo").addEventListener('click', () => openModalFor(inputs.fondo));
+                    $("#btn-paleta-acento").addEventListener('click', () => openModalFor(inputs.acento));
+
+                    // Aplicar desde el modal en tiempo real
+                    picker.addEventListener('input', () => {
+                        if (!targetInput) return;
+                        targetInput.value = picker.value;
+                        applyPreview();
+                    });
+
+                    $("#btn-color-aceptar").addEventListener('click', closeModal);
+                    $("#btn-color-cancelar").addEventListener('click', closeModal);
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) closeModal();
+                    });
+
                     // Carga inicial
                     loadColors();
                 })();
             </script>
+
 
         </div>
     </div>
