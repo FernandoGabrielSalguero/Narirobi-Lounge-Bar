@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Core\Auth;
@@ -12,26 +13,20 @@ final class AuthModel
 
     public function __construct()
     {
-        /**
-         * 1) Traer $pdo desde config.php (que a su vez carga .env)
-         *    - Si config.php creó $pdo, lo reutilizamos.
-         *    - Si no, usamos los valores de getenv() para crear un PDO acá.
-         */
         $pdo = null;
         $configPath = __DIR__ . '/../../config.php';
         if (is_readable($configPath)) {
             /** @noinspection PhpIncludeInspection */
-            require_once $configPath; // define $pdo y carga .env en getenv()
-            if ($pdo instanceof PDO) {
+            /** @var PDO|null $pdo  <-- ayuda al analizador estático */
+            require_once $configPath; // define $pdo
+            if (isset($pdo) && $pdo instanceof PDO) { // OK por 'use PDO'
                 $this->pdo = $pdo;
                 return;
             }
         }
+        // ...
 
-        /**
-         * 2) Fallback: construir PDO con variables de entorno ya cargadas por config.php
-         *    (También funciona si otro bootstrap cargó el .env previamente).
-         */
+
         $host = getenv('DB_HOST') ?: '127.0.0.1';
         $db   = getenv('DB_NAME') ?: '';
         $user = getenv('DB_USER') ?: '';
@@ -52,35 +47,29 @@ final class AuthModel
         try {
             $this->pdo = new PDO($dsn, $user, $pass, $options);
         } catch (PDOException $e) {
-            // Mensaje genérico hacia afuera; el detalle va a logs si corresponde
+            error_log('[AuthModel][ERROR] Fallo conexión PDO: ' . $e->getMessage());
             throw new PDOException('Error de conexión a la base de datos.');
         }
     }
+    public function findUserByUsername(string $usuario): ?array
+    {
+        $u = trim($usuario);
 
-    /**
-     * Devuelve array con datos mínimos del usuario o null si no existe.
-     */
-public function findUserByUsername(string $usuario): ?array
-{
-    // Normaliza entrada
-    $u = trim($usuario);
-
-    // Busca por usuario (login) o por nombre, en forma case-insensitive
-    $sql = "SELECT id, usuario, contrasena, rol
+        $sql = "SELECT id, usuario, contrasena, rol
             FROM usuarios
             WHERE LOWER(usuario) = LOWER(:u)
                OR LOWER(nombre)  = LOWER(:u)
             LIMIT 1";
-    $stmt = $this->pdo->prepare($sql);
-    $stmt->bindValue(':u', $u, PDO::PARAM_STR);
-    $stmt->execute();
-    $row = $stmt->fetch();
-    return $row ?: null;
-}
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->bindValue(':u', $u, PDO::PARAM_STR);
+        $stmt->execute();
+        $row = $stmt->fetch();
+        if (!$row) {
+            error_log('[AuthModel][INFO] Usuario no encontrado: ' . $u);
+        }
+        return $row ?: null;
+    }
 
-    /**
-     * (Opcional) Auditar último login; ignora error si la columna no existe.
-     */
     public function touchLastLogin(int $userId): void
     {
         try {
@@ -88,7 +77,6 @@ public function findUserByUsername(string $usuario): ?array
             $stmt->bindValue(':id', $userId, PDO::PARAM_INT);
             $stmt->execute();
         } catch (\Throwable $e) {
-            // Silencioso
         }
     }
 }
