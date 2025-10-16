@@ -23,6 +23,10 @@ $email = $user['email'] ?? 'Sin email';
     <!-- Framework Success desde CDN -->
     <link rel="stylesheet" href="https://www.fernandosalguero.com/cdn/assets/css/framework.css">
     <script src="https://www.fernandosalguero.com/cdn/assets/javascript/framework.js" defer></script>
+
+    <!-- Picker avanzado (solo CDN, sin archivos nuevos locales) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/classic.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js" defer></script>
 </head>
 
 <body>
@@ -85,7 +89,6 @@ $email = $user['email'] ?? 'Sin email';
                                 <button type="button" class="btn btn-info" id="btn-paleta-texto" aria-controls="modal-color" aria-label="Elegir color de texto">
                                     <span class="material-icons">palette</span>
                                 </button>
-                                <small id="color_texto_help" class="help">Ej.: #111, #111111 o rgb(17,17,17)</small>
                             </div>
 
                             <div class="input-group">
@@ -96,7 +99,6 @@ $email = $user['email'] ?? 'Sin email';
                                 <button type="button" class="btn btn-info" id="btn-paleta-fondo" aria-controls="modal-color" aria-label="Elegir color de fondo">
                                     <span class="material-icons">palette</span>
                                 </button>
-                                <small id="color_fondo_help" class="help">Ej.: #fff, #ffffff o rgb(255,255,255)</small>
                             </div>
 
                             <div class="input-group">
@@ -107,7 +109,6 @@ $email = $user['email'] ?? 'Sin email';
                                 <button type="button" class="btn btn-info" id="btn-paleta-acento" aria-controls="modal-color" aria-label="Elegir color de acento">
                                     <span class="material-icons">palette</span>
                                 </button>
-                                <small id="color_acento_help" class="help">Ej.: #7c3aed o rgb(124,58,237)</small>
                             </div>
 
                         </div>
@@ -137,21 +138,22 @@ $email = $user['email'] ?? 'Sin email';
 
                     </form>
                 </div>
+
+                <!-- modal -->
                 <div id="modal-color" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-color-title">
                     <div class="modal-content">
                         <h3 id="modal-color-title">Elegí un color</h3>
                         <div class="input-group">
-                            <label for="color_picker">Selector</label>
-                            <div class="input-icon input-icon-name">
-                                <input type="color" id="color_picker" name="color_picker" value="#000000" />
-                            </div>
+                            <label for="color_picker_mount">Selector</label>
+                            <div id="color_picker_mount" class="input-icon input-icon-name" aria-live="polite"></div>
                         </div>
                         <div class="form-buttons">
-                            <button type="button" class="btn btn-aceptar" id="btn-color-aceptar">Aceptar</button>
+                            <button type="button" class="btn btn-aceptar" id="btn-color-aceptar" title="Usar este color">Aceptar</button>
                             <button type="button" class="btn btn-cancelar" id="btn-color-cancelar">Cancelar</button>
                         </div>
                     </div>
                 </div>
+
             </section>
 
             <style>
@@ -205,6 +207,21 @@ $email = $user['email'] ?? 'Sin email';
                 #preview_acento {
                     background: #f8fafc;
                     color: #0f172a
+                }
+
+                /* Pickr en modal: ajustar ancho sin romper layout del framework */
+                #color_picker_mount .pcr-app {
+                    box-shadow: none;
+                    border: 1px solid rgba(0, 0, 0, .08);
+                    border-radius: 10px
+                }
+
+                #color_picker_mount .pcr-app .pcr-selection .pcr-color-preview {
+                    display: none
+                }
+
+                #color_picker_mount .pcr-app .pcr-result {
+                    width: 100%
                 }
             </style>
 
@@ -337,17 +354,70 @@ $email = $user['email'] ?? 'Sin email';
                         }
                     });
 
-                    // === Modal selector de color ===
+                    // === Modal selector de color (Pickr) ===
                     const modal = $("#modal-color");
-                    const picker = $("#color_picker");
+                    const pickerMount = $("#color_picker_mount");
                     let targetInput = null;
+
+                    // Instancia única de Pickr
+                    let pickr = null;
+
+                    function ensurePickr() {
+                        if (pickr) return pickr;
+                        pickr = Pickr.create({
+                            el: pickerMount,
+                            theme: 'classic',
+                            lockOpacity: true, // Sólo colores opacos
+                            comparison: false,
+                            default: '#000000',
+                            position: 'bottom-middle',
+                            components: {
+                                // Principal
+                                preview: true,
+                                opacity: false,
+                                hue: true,
+
+                                // Interacciones (botonera)
+                                interaction: {
+                                    hex: true,
+                                    rgba: true,
+                                    hsla: true,
+                                    input: true,
+                                    clear: false,
+                                    save: false
+                                }
+                            },
+                            i18n: {
+                                'btn:toggle': 'Haga clic para alternar las opciones de color (rgb/hsl/hex)',
+                                'aria:btn:toggle': 'Alternar opciones',
+                                'aria:input': 'Entrada de color',
+                                'aria:palette': 'Paleta',
+                                'aria:hue': 'Matiz'
+                            }
+                        });
+
+                        // Cambios en tiempo real -> reflejo en input + preview
+                        pickr.on('change', (color) => {
+                            if (!targetInput) return;
+                            const hex = color.toHEXA().toString(); // #rrggbb
+                            targetInput.value = hex;
+                            applyPreview();
+                        });
+
+                        return pickr;
+                    }
 
                     function openModalFor(inputEl) {
                         targetInput = inputEl;
+                        const p = ensurePickr();
                         const hx = anyToHex(normalize(targetInput.value)) || '#000000';
-                        picker.value = hx;
+                        p.setColor(hx);
                         modal.classList.remove('hidden');
-                        picker.focus();
+                        // Enfoco el input interno de pickr para accesibilidad
+                        setTimeout(() => {
+                            const input = pickerMount.querySelector('.pcr-result');
+                            if (input) input.focus();
+                        }, 50);
                     }
 
                     function closeModal() {
@@ -360,18 +430,13 @@ $email = $user['email'] ?? 'Sin email';
                     $("#btn-paleta-fondo").addEventListener('click', () => openModalFor(inputs.fondo));
                     $("#btn-paleta-acento").addEventListener('click', () => openModalFor(inputs.acento));
 
-                    // Aplicar desde el modal en tiempo real
-                    picker.addEventListener('input', () => {
-                        if (!targetInput) return;
-                        targetInput.value = picker.value;
-                        applyPreview();
-                    });
-
+                    // Cerrar modal
                     $("#btn-color-aceptar").addEventListener('click', closeModal);
                     $("#btn-color-cancelar").addEventListener('click', closeModal);
                     modal.addEventListener('click', (e) => {
                         if (e.target === modal) closeModal();
                     });
+
 
                     // Carga inicial
                     loadColors();
