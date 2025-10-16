@@ -138,6 +138,7 @@ $email = $user['email'] ?? 'Sin email';
                             <button type="button" class="btn btn-cancelar" id="btn-reestablecer">Reestablecer</button>
                         </div>
 
+                        
                     </form>
                 </div>
 
