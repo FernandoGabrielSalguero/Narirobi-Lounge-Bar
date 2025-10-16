@@ -81,7 +81,6 @@ function handleLogin(): void
 
     $model->touchLastLogin((int)$user['id']);
 
-    // IMPORTANTE: corregimos ruta de colaborador (1 sola 'l' en el archivo)
     $redirect = '/views/colaborador/colaborador_dashboard.php';
     if ($user['rol'] === 'admin') {
         $redirect = '/views/admin/admin_dashboard.php';
