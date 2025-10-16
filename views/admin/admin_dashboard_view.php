@@ -19,7 +19,7 @@ $email = $user['email'] ?? 'Sin email';
     <!-- Íconos de Material Design -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
-    
+
     <!-- Framework Success desde CDN -->
     <link rel="stylesheet" href="https://www.fernandosalguero.com/cdn/assets/css/framework.css">
     <script src="https://www.fernandosalguero.com/cdn/assets/javascript/framework.js" defer></script>
@@ -34,21 +34,21 @@ $email = $user['email'] ?? 'Sin email';
             </div>
             <nav class="sidebar-menu">
                 <ul>
-<li onclick="location.href='admin_dashboard_view.php'">
-    <span class="material-icons" style="color:#5b21b6;">home</span><span class="link-text">Inicio</span>
-</li>
-<li onclick="location.href='admin_carta_view.php'">
-    <span class="material-icons" style="color:#5b21b6;">restaurant_menu</span><span class="link-text">Carta</span>
-</li>
-<li onclick="location.href='admin_gift_card_view.php'">
-    <span class="material-icons" style="color:#5b21b6;">card_giftcard</span><span class="link-text">Gift Card</span>
-</li>
-<li onclick="location.href='admin_reservas_view.php'">
-    <span class="material-icons" style="color:#5b21b6;">event</span><span class="link-text">Reservas</span>
-</li>
-<li onclick="location.href='../../logout.php'">
-    <span class="material-icons" style="color:red;">logout</span><span class="link-text">Salir</span>
-</li>
+                    <li onclick="location.href='admin_dashboard_view.php'">
+                        <span class="material-icons" style="color:#5b21b6;">home</span><span class="link-text">Inicio</span>
+                    </li>
+                    <li onclick="location.href='admin_carta_view.php'">
+                        <span class="material-icons" style="color:#5b21b6;">restaurant_menu</span><span class="link-text">Carta</span>
+                    </li>
+                    <li onclick="location.href='admin_gift_card_view.php'">
+                        <span class="material-icons" style="color:#5b21b6;">card_giftcard</span><span class="link-text">Gift Card</span>
+                    </li>
+                    <li onclick="location.href='admin_reservas_view.php'">
+                        <span class="material-icons" style="color:#5b21b6;">event</span><span class="link-text">Reservas</span>
+                    </li>
+                    <li onclick="location.href='../../logout.php'">
+                        <span class="material-icons" style="color:red;">logout</span><span class="link-text">Salir</span>
+                    </li>
                 </ul>
             </nav>
             <div class="sidebar-footer">

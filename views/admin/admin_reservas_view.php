@@ -19,7 +19,7 @@ $email = $user['email'] ?? 'Sin email';
     <!-- Íconos de Material Design -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
-    
+
     <!-- Framework Success desde CDN -->
     <link rel="stylesheet" href="https://www.fernandosalguero.com/cdn/assets/css/framework.css">
     <script src="https://www.fernandosalguero.com/cdn/assets/javascript/framework.js" defer></script>
@@ -35,19 +35,19 @@ $email = $user['email'] ?? 'Sin email';
             <nav class="sidebar-menu">
                 <ul>
                     <li onclick="location.href='admin_dashboard_view.php'">
-                        <span class="material-icons" style="color: #5b21b6;">home</span><span class="link-text">Inicio</span>
+                        <span class="material-icons" style="color:#5b21b6;">home</span><span class="link-text">Inicio</span>
                     </li>
                     <li onclick="location.href='admin_carta_view.php'">
-                        <span class="material-icons" style="color: #5b21b6;">person</span><span class="link-text">Carta</span>
+                        <span class="material-icons" style="color:#5b21b6;">restaurant_menu</span><span class="link-text">Carta</span>
                     </li>
                     <li onclick="location.href='admin_gift_card_view.php'">
-                        <span class="material-icons" style="color: #5b21b6;">person</span><span class="link-text">Gift Card</span>
+                        <span class="material-icons" style="color:#5b21b6;">card_giftcard</span><span class="link-text">Gift Card</span>
                     </li>
                     <li onclick="location.href='admin_reservas_view.php'">
-                        <span class="material-icons" style="color: #5b21b6;">person</span><span class="link-text">Reservas</span>
+                        <span class="material-icons" style="color:#5b21b6;">event</span><span class="link-text">Reservas</span>
                     </li>
-                    <li onclick="location.href='../../../logout.php'">
-                        <span class="material-icons" style="color: red;">logout</span><span class="link-text">Salir</span>
+                    <li onclick="location.href='../../logout.php'">
+                        <span class="material-icons" style="color:red;">logout</span><span class="link-text">Salir</span>
                     </li>
                 </ul>
             </nav>
@@ -68,8 +68,8 @@ $email = $user['email'] ?? 'Sin email';
 
             <section class="content">
                 <div class="card">
-                    <h2>Hola 👋 <?= htmlspecialchars($usuario) ?></h2>
-                    <p>En esta página, vemos las reservas</p>
+                    <h2>Hola 👋</h2>
+                    <p>En esta página, visualizamos las reservas</p>
                 </div>
 
                 <div class="card-grid grid-4">
@@ -94,11 +94,7 @@ $email = $user['email'] ?? 'Sin email';
         </div>
     </div>
 
-    <script src="../../views/partials/spinner-global.js"></script>
-
-    <script>
-        console.log(<?php echo json_encode($_SESSION); ?>);
-    </script>
+    <script src="/views/partial/spinner-global.js" defer></script>
 </body>
 
 </html>
