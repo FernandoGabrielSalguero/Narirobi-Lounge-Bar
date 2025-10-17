@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 class AdminCartaModel
@@ -23,11 +22,9 @@ class AdminCartaModel
 
     public function listSubcategoriasByCategoria(int $categoriaId): array
     {
-        // Si categoriaId = 0, devolver vacío
         if ($categoriaId <= 0) {
             return [];
         }
-
         $sql = "SELECT s.id, s.nombre
                 FROM categoria_subcategoria cs
                 INNER JOIN subcategorias s ON s.id = cs.subcategory_id
@@ -38,7 +35,7 @@ class AdminCartaModel
         return $st->fetchAll();
     }
 
-    /** ORDEN **/
+    /** ORDEN (interno, ya no expuesto en UI) **/
     public function nextOrden(): int
     {
         $sql = "SELECT COALESCE(MAX(orden), 0) + 1 AS next FROM productos";
@@ -50,12 +47,14 @@ class AdminCartaModel
     /** CRUD PRODUCTOS **/
     public function createProducto(array $p): int
     {
+        // Calculamos orden internamente para cumplir NOT NULL sin exponer en UI
+        $orden = $this->nextOrden();
         $sql = "INSERT INTO productos
                 (orden, precio, nombre, aclaracion_1, aclaracion_2, aclaracion_3, detalle, categoria, subcategoria)
                 VALUES (:orden, :precio, :nombre, :a1, :a2, :a3, :detalle, :categoria, :subcategoria)";
         $st = $this->pdo->prepare($sql);
         $st->execute([
-            ':orden' => $p['orden'],
+            ':orden' => $orden,
             ':precio' => $p['precio'],
             ':nombre' => $p['nombre'],
             ':a1' => $p['aclaracion_1'],
@@ -70,27 +69,36 @@ class AdminCartaModel
 
     public function listProductos(): array
     {
-        $sql = "SELECT p.id, p.orden, p.nombre, p.precio,
-                       c.nombre AS categoria_nombre,
-                       s.nombre AS subcategoria_nombre
+        $sql = "SELECT
+                    p.id,
+                    p.nombre,
+                    p.precio,
+                    p.categoria,
+                    p.subcategoria,
+                    p.aclaracion_1,
+                    p.aclaracion_2,
+                    p.aclaracion_3,
+                    p.detalle,
+                    c.nombre AS categoria_nombre,
+                    s.nombre AS subcategoria_nombre
                 FROM productos p
                 INNER JOIN categorias c ON c.id = p.categoria
                 INNER JOIN subcategorias s ON s.id = p.subcategoria
-                ORDER BY p.orden ASC, p.id ASC";
+                ORDER BY p.id ASC";
         $st = $this->pdo->query($sql);
         return $st->fetchAll();
     }
 
     public function updateProducto(int $id, array $p): bool
     {
+        // No tocamos 'orden' (deja de ser parte del flujo)
         $sql = "UPDATE productos
-                   SET orden=:orden, precio=:precio, nombre=:nombre, aclaracion_1=:a1,
+                   SET precio=:precio, nombre=:nombre, aclaracion_1=:a1,
                        aclaracion_2=:a2, aclaracion_3=:a3, detalle=:detalle,
                        categoria=:categoria, subcategoria=:subcategoria
                  WHERE id=:id";
         $st = $this->pdo->prepare($sql);
         return $st->execute([
-            ':orden' => $p['orden'],
             ':precio' => $p['precio'],
             ':nombre' => $p['nombre'],
             ':a1' => $p['aclaracion_1'],

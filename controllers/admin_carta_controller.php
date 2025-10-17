@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 ini_set('display_errors', '1');
 error_reporting(E_ALL);
@@ -8,13 +7,11 @@ require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../models/admin_carta_model.php';
 header('Content-Type: application/json; charset=utf-8');
 
-function respondOk($data): void
-{
+function respondOk($data): void {
     echo json_encode(['ok' => true, 'data' => $data], JSON_UNESCAPED_UNICODE);
     exit;
 }
-function respondErr(string $msg, int $code = 400): void
-{
+function respondErr(string $msg, int $code = 400): void {
     http_response_code($code);
     echo json_encode(['ok' => false, 'error' => $msg], JSON_UNESCAPED_UNICODE);
     exit;
@@ -36,8 +33,7 @@ try {
                 $cat = (int)($_GET['categoria'] ?? 0);
                 respondOk($model->listSubcategoriasByCategoria($cat));
 
-            case 'nextOrden':
-                respondOk(['next' => $model->nextOrden()]);
+            // Nota: nextOrden ya no es necesario en UI, se mantiene omitido aquí.
 
             case 'listProductos':
                 respondOk($model->listProductos());
@@ -54,7 +50,6 @@ try {
     switch ($action) {
         case 'createProducto':
             $p = [
-                'orden' => max(0, (int)($json['orden'] ?? 0)) ?: $model->nextOrden(),
                 'precio' => (float)($json['precio'] ?? 0),
                 'nombre' => trim((string)($json['nombre'] ?? '')),
                 'aclaracion_1' => trim((string)($json['aclaracion_1'] ?? '')),
@@ -68,15 +63,15 @@ try {
             if ($p['precio'] <= 0 || $p['categoria'] <= 0 || $p['subcategoria'] <= 0 || $p['nombre'] === '') {
                 respondErr('Datos inválidos: nombre, precio (>0), categoría y subcategoría son obligatorios');
             }
+            if (mb_strlen($p['detalle']) > 255) {
+                respondErr('Detalle no puede superar 255 caracteres');
+            }
 
-            // Validación simple del par cat-subcat (existe vínculo)
+            // Validación del vínculo cat-subcat
             $subs = $model->listSubcategoriasByCategoria($p['categoria']);
             $okPair = false;
             foreach ($subs as $s) {
-                if ((int)$s['id'] === $p['subcategoria']) {
-                    $okPair = true;
-                    break;
-                }
+                if ((int)$s['id'] === $p['subcategoria']) { $okPair = true; break; }
             }
             if (!$okPair) {
                 respondErr('La subcategoría no pertenece a la categoría seleccionada');
@@ -91,7 +86,6 @@ try {
                 respondErr('ID inválido');
             }
             $p = [
-                'orden' => max(1, (int)($json['orden'] ?? 1)),
                 'precio' => (float)($json['precio'] ?? 0),
                 'nombre' => trim((string)($json['nombre'] ?? '')),
                 'aclaracion_1' => trim((string)($json['aclaracion_1'] ?? '')),
@@ -104,6 +98,19 @@ try {
             if ($p['precio'] <= 0 || $p['categoria'] <= 0 || $p['subcategoria'] <= 0 || $p['nombre'] === '') {
                 respondErr('Datos inválidos');
             }
+            if (mb_strlen($p['detalle']) > 255) {
+                respondErr('Detalle no puede superar 255 caracteres');
+            }
+            // Validar vínculo cat-subcat al editar
+            $subs = $model->listSubcategoriasByCategoria($p['categoria']);
+            $okPair = false;
+            foreach ($subs as $s) {
+                if ((int)$s['id'] === $p['subcategoria']) { $okPair = true; break; }
+            }
+            if (!$okPair) {
+                respondErr('La subcategoría no pertenece a la categoría seleccionada');
+            }
+
             $ok = $model->updateProducto($id, $p);
             respondOk(['updated' => (bool)$ok]);
 
