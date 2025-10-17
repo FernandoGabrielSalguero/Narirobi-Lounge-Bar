@@ -215,7 +215,7 @@ $email = $user['email'] ?? 'Sin email';
                                 <label for="detalle">Detalle</label>
                                 <div class="input-icon input-icon-name">
                                     <span class="material-icons mi" aria-hidden="true">description</span>
-                                    <textarea id="detalle" name="detalle" placeholder="Descripción del producto (máx. 255)" rows="3" maxlength="255" aria-describedby="detalleCount"></textarea>
+                                    <textarea id="detalle" name="detalle" placeholder="Descripción del producto" rows="3" maxlength="255" aria-describedby="detalleCount"></textarea>
                                 </div>
                                 <small id="detalleCount" aria-live="polite">0/255</small>
                             </div>
