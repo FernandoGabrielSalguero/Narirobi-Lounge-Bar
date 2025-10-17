@@ -198,7 +198,7 @@ $email = $user['email'] ?? 'Sin email';
         <p>¿Confirmás eliminar este producto?</p>
         <div class="form-buttons">
             <button class="btn btn-aceptar" id="btnConfirmDelete">Eliminar</button>
-            <button class="btn btn-cancelar" onclick="closeModal('modalDelete')">Cancelar</button>
+            <button class="btn btn-cancelar" onclick="closeModalSafe('modalDelete')">Cancelar</button>
         </div>
     </div>
 </div>
@@ -269,7 +269,7 @@ $email = $user['email'] ?? 'Sin email';
             </div>
             <div class="form-buttons">
                 <button type="submit" class="btn btn-aceptar">Guardar cambios</button>
-                <button type="button" class="btn btn-cancelar" onclick="closeModal('modalEdit')">Cancelar</button>
+                <button type="button" class="btn btn-cancelar" onclick="closeModalSafe('modalEdit')">Cancelar</button>
             </div>
         </form>
     </div>
@@ -282,9 +282,21 @@ $email = $user['email'] ?? 'Sin email';
     const $ = (sel) => document.querySelector(sel);
     const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
-    // Helpers modal (no rompe CDN)
-    window.openModal = (id) => { document.getElementById(id).classList.remove('hidden'); };
-    window.closeModal = (id) => { document.getElementById(id).classList.add('hidden'); };
+// Helpers de modal seguros (no sobreescriben el CDN)
+const openModalSafe = (id) => {
+    const el = document.getElementById(id);
+    if (!el) { console.error('Modal no encontrado:', id); showAlert('error', 'No se encontró el modal.'); return; }
+    el.classList.remove('hidden');
+    el.setAttribute('aria-hidden', 'false');
+    const focusable = el.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (focusable) focusable.focus();
+};
+const closeModalSafe = (id) => {
+    const el = document.getElementById(id);
+    if (!el) { console.error('Modal no encontrado:', id); return; }
+    el.classList.add('hidden');
+    el.setAttribute('aria-hidden', 'true');
+};
 
     // API helpers
     const api = (action, params = {}) => {
@@ -438,7 +450,7 @@ $email = $user['email'] ?? 'Sin email';
         const icon = btn.querySelector('.material-icons')?.textContent || '';
         if(icon === 'delete'){
             productoAEliminar = { id };
-            openModal('modalDelete');
+            openModalSafe('modalDelete');
         }else if(icon === 'edit'){
             abrirModalEditar(id);
         }
@@ -446,7 +458,7 @@ $email = $user['email'] ?? 'Sin email';
 
     // Eliminar
     $('#btnConfirmDelete').addEventListener('click', ()=>{
-        if(!productoAEliminar){ closeModal('modalDelete'); return; }
+        if(!productoAEliminar){ closeModalSafe('modalDelete'); return; }
         postJSON('deleteProducto', { id: productoAEliminar.id }).then(res=>{
             if(res.ok && res.deleted){
                 showAlert('success','Producto eliminado');
@@ -455,10 +467,10 @@ $email = $user['email'] ?? 'Sin email';
                 showAlert('error', res.error || 'No se pudo eliminar');
             }
             productoAEliminar = null;
-            closeModal('modalDelete');
+            closeModalSafe('modalDelete');
         }).catch(()=> {
             showAlert('error','Error de red al eliminar');
-            closeModal('modalDelete');
+            closeModalSafe('modalDelete');
         });
     });
 
@@ -507,7 +519,7 @@ $email = $user['email'] ?? 'Sin email';
                 selSubEdit.appendChild(opt);
             });
             selSubEdit.disabled = false;
-            openModal('modalEdit');
+            openModalSafe('modalEdit');
         });
 
         // Cambio de categoría dentro del modal => recargar subcategorías
@@ -552,7 +564,7 @@ $email = $user['email'] ?? 'Sin email';
         postJSON('updateProducto', payload).then(res=>{
             if(res.ok && res.updated){
                 showAlert('success','Producto actualizado');
-                closeModal('modalEdit');
+                closeModalSafe('modalEdit');
                 cargarProductos();
             }else{
                 showAlert('error', res.error || 'No se pudo actualizar');
