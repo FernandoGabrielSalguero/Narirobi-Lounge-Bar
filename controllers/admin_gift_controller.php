@@ -52,19 +52,20 @@ try {
         }
 
         // Crear nueva gift card
+        // Crear nueva gift card
         $nombre = isset($_POST['nombre']) ? trim((string)$_POST['nombre']) : '';
         $fecha  = isset($_POST['fecha_vencimiento']) ? trim((string)$_POST['fecha_vencimiento']) : '';
+        $texto  = isset($_POST['texto']) ? trim((string)$_POST['texto']) : '';
 
-        if ($nombre === '' || $fecha === '') {
-            json_error('Campos obligatorios faltantes (nombre, fecha_vencimiento).');
+        if ($nombre === '' || $fecha === '' || $texto === '') {
+            json_error('Campos obligatorios faltantes (nombre, fecha_vencimiento, texto).');
         }
 
-        // Validar formato YYYY-MM-DD (simple)
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) {
             json_error('Formato de fecha inválido. Use YYYY-MM-DD.');
         }
 
-        $nueva = $model->crear($nombre, $fecha);
+        $nueva = $model->crear($nombre, $fecha, $texto);
         json_ok($nueva);
     }
 

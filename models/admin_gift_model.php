@@ -30,19 +30,19 @@ class AdminGiftModel
     /**
      * Crea una gift card en estado 'pendiente'.
      */
-    public function crear(string $nombre, string $fechaVencimiento): array
+    public function crear(string $nombre, string $fechaVencimiento, string $texto): array
     {
-        // Validaciones simples
-        if ($nombre === '' || $fechaVencimiento === '') {
-            throw new \InvalidArgumentException('Nombre y fecha de vencimiento son obligatorios.');
+        if ($nombre === '' || $fechaVencimiento === '' || $texto === '') {
+            throw new \InvalidArgumentException('Nombre, fecha de vencimiento y texto son obligatorios.');
         }
 
         $codigo = $this->generarCodigoUnico();
 
-        $sql = 'INSERT INTO gift_cards (nombre, fecha_vencimiento, codigo, estado)
-                VALUES (:nombre, :fecha_vencimiento, :codigo, "pendiente")';
+        $sql = 'INSERT INTO gift_cards (nombre, texto, fecha_vencimiento, codigo, estado)
+            VALUES (:nombre, :texto, :fecha_vencimiento, :codigo, "pendiente")';
         $stmt = $this->pdo->prepare($sql);
         $stmt->bindValue(':nombre', $nombre);
+        $stmt->bindValue(':texto', $texto);
         $stmt->bindValue(':fecha_vencimiento', $fechaVencimiento);
         $stmt->bindValue(':codigo', $codigo);
         $stmt->execute();
@@ -52,11 +52,14 @@ class AdminGiftModel
         return [
             'id' => $id,
             'nombre' => $nombre,
+            'texto' => $texto,
             'fecha_vencimiento' => $fechaVencimiento,
             'codigo' => $codigo,
             'estado' => 'pendiente',
         ];
     }
+
+
 
     /**
      * Lista gift cards opcionalmente filtradas por nombre/código/estado.
@@ -79,9 +82,9 @@ class AdminGiftModel
             $params[] = $estado;
         }
 
-        $sql = 'SELECT id, nombre, fecha_vencimiento, codigo, estado
-                FROM gift_cards ' . (count($where) ? ('WHERE ' . implode(' AND ', $where)) : '') . '
-                ORDER BY id DESC';
+        $sql = 'SELECT id, nombre, texto, fecha_vencimiento, codigo, estado
+        FROM gift_cards ' . (count($where) ? ('WHERE ' . implode(' AND ', $where)) : '') . '
+        ORDER BY id DESC';
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll();
@@ -94,13 +97,17 @@ class AdminGiftModel
     {
         $this->pdo->beginTransaction();
         try {
-            // Bloqueo optimista: asegurar estado pendiente al canjear
-            $stmt = $this->pdo->prepare('SELECT id, estado FROM gift_cards WHERE codigo = ? FOR UPDATE');
+            $stmt = $this->pdo->prepare('SELECT id, estado, fecha_vencimiento FROM gift_cards WHERE codigo = ? FOR UPDATE');
             $stmt->execute([$codigo]);
             $row = $stmt->fetch();
 
             if (!$row) {
                 throw new \RuntimeException('Código inexistente.');
+            }
+            // Validar vencimiento
+            $hoy = (new \DateTimeImmutable('today'))->format('Y-m-d');
+            if ($row['fecha_vencimiento'] < $hoy) {
+                throw new \RuntimeException('La Gift Card está vencida y no puede canjearse.');
             }
             if ($row['estado'] !== 'pendiente') {
                 throw new \RuntimeException('La Gift Card ya fue canjeada.');
@@ -108,7 +115,6 @@ class AdminGiftModel
 
             $upd = $this->pdo->prepare('UPDATE gift_cards SET estado = "canjeado" WHERE id = ?');
             $upd->execute([(int)$row['id']]);
-
             $this->pdo->commit();
 
             return ['id' => (int)$row['id'], 'codigo' => $codigo, 'estado' => 'canjeado', 'message' => 'Canje exitoso.'];
