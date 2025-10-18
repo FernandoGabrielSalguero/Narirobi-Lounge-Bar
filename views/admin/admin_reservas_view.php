@@ -219,7 +219,7 @@ $email = $user['email'] ?? 'Sin email';
 
                         <div class="form-buttons">
                             <button type="submit" class="btn btn-aceptar">Guardar cambios</button>
-                            <button type="button" class="btn btn-cancelar" onclick="closeModal()">Cancelar</button>
+                            <button type="button" class="btn btn-cancelar" onclick="reservasCloseModal()">Cancelar</button>
                         </div>
                     </form>
                 </div>
@@ -328,11 +328,11 @@ $email = $user['email'] ?? 'Sin email';
                     const formEditar = document.getElementById('formEditarReserva');
                     const tablaBody = document.querySelector('#tablaReservas tbody');
 
-                    // Modal Edición (robusto: reconsulta el nodo cada vez)
+                    // Modal Edición
                     function getModalEdit() {
                         return document.getElementById('modalReserva');
                     }
-                    window.openModal = () => {
+                    window.reservasOpenModal = () => {
                         const m = getModalEdit();
                         if (!m) {
                             console.error('[reservas] modalReserva no encontrado en el DOM al abrir.');
@@ -342,7 +342,7 @@ $email = $user['email'] ?? 'Sin email';
                         const first = m.querySelector('input,select,textarea');
                         if (first) first.focus();
                     };
-                    window.closeModal = () => {
+                    window.reservasCloseModal = () => {
                         const m = getModalEdit();
                         if (!m) {
                             console.warn('[reservas] modalReserva no encontrado al cerrar.');
@@ -350,6 +350,14 @@ $email = $user['email'] ?? 'Sin email';
                         }
                         m.classList.add('hidden');
                     };
+
+                    // Diagnóstico: asegurar que no colisionamos con el framework
+                    console.info('[reservas] funciones de modal listas:', {
+                        reservasOpenModal: typeof window.reservasOpenModal,
+                        reservasCloseModal: typeof window.reservasCloseModal,
+                        frameworkOpenModalType: typeof window.openModal, // del framework
+                        frameworkCloseModalType: typeof window.closeModal // del framework
+                    });
 
                     // Modal Eliminar
                     const modalEliminar = document.getElementById('modalEliminar');
@@ -528,7 +536,7 @@ $email = $user['email'] ?? 'Sin email';
 
                                 // Abrir modal con guardas
                                 try {
-                                    openModal();
+                                    reservasOpenModal();
                                     console.debug('[reservas] modal de edición abierto');
                                 } catch (modalErr) {
                                     console.error('[reservas] fallo al abrir modal:', modalErr);
@@ -560,7 +568,7 @@ $email = $user['email'] ?? 'Sin email';
                             const json = await res.json();
                             if (!json.ok) throw new Error(json.error || 'No se pudo actualizar la reserva');
                             // Primero cerramos modal, luego notificamos (evita problemas de overlay/foco/containers)
-                            closeModal();
+                            reservasCloseModal();
                             notify('success', 'Reserva actualizada');
                             await cargarReservas();
                         } catch (err) {
