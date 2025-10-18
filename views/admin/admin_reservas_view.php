@@ -303,21 +303,52 @@ $email = $user['email'] ?? 'Sin email';
 
             <script>
                 (() => {
+
+                    // Asegura contenedor para alerts del framework si lo requiere
+                    (() => {
+                        const candidates = ['.alert-container', '.alert-wrapper', '#alert-container'];
+                        const found = candidates.some(sel => document.querySelector(sel));
+                        if (!found) {
+                            const div = document.createElement('div');
+                            div.className = 'alert-container';
+                            div.style.position = 'fixed';
+                            div.style.bottom = '1rem';
+                            div.style.right = '1rem';
+                            div.style.zIndex = '9999';
+                            document.body.appendChild(div);
+                            console.info('[reservas] Se creó .alert-container dinámicamente para showAlert.');
+                        } else {
+                            console.info('[reservas] Contenedor de alertas existente.');
+                        }
+                    })();
+
                     const API = '../../controllers/admin_reservas_controller.php';
 
                     const formNueva = document.getElementById('formNuevaReserva');
                     const formEditar = document.getElementById('formEditarReserva');
                     const tablaBody = document.querySelector('#tablaReservas tbody');
 
-                    // Modal Edición
-                    const modalEdit = document.getElementById('modalReserva');
+                    // Modal Edición (robusto: reconsulta el nodo cada vez)
+                    function getModalEdit() {
+                        return document.getElementById('modalReserva');
+                    }
                     window.openModal = () => {
-                        modalEdit.classList.remove('hidden');
-                        const first = modalEdit.querySelector('input,select,textarea');
+                        const m = getModalEdit();
+                        if (!m) {
+                            console.error('[reservas] modalReserva no encontrado en el DOM al abrir.');
+                            throw new Error('No se encontró el modal de edición (modalReserva).');
+                        }
+                        m.classList.remove('hidden');
+                        const first = m.querySelector('input,select,textarea');
                         if (first) first.focus();
                     };
                     window.closeModal = () => {
-                        modalEdit.classList.add('hidden');
+                        const m = getModalEdit();
+                        if (!m) {
+                            console.warn('[reservas] modalReserva no encontrado al cerrar.');
+                            return;
+                        }
+                        m.classList.add('hidden');
                     };
 
                     // Modal Eliminar
@@ -355,19 +386,26 @@ $email = $user['email'] ?? 'Sin email';
                         }
                     });
 
-                    // Notificaciones: wrapper seguro para evitar errores en showAlert
+                    // Notificaciones: wrapper seguro para evitar errores en showAlert + log
                     function notify(type, message) {
                         try {
                             if (typeof showAlert === 'function') {
-                                showAlert(type, message);
+                                try {
+                                    showAlert(type, message);
+                                } catch (internalErr) {
+                                    console.error('[reservas] showAlert lanzó un error interno:', internalErr);
+                                    alert((type ? `[${type.toUpperCase()}] ` : '') + message);
+                                }
                             } else {
-                                throw new Error('showAlert no disponible');
+                                console.warn('[reservas] showAlert no disponible, uso fallback.');
+                                alert((type ? `[${type.toUpperCase()}] ` : '') + message);
                             }
-                        } catch (e) {
-                            // Fallback mínimo
-                            alert((type ? `[${type.toUpperCase()}] ` : '') + message);
+                        } catch (outerErr) {
+                            console.error('[reservas] notify falló:', outerErr);
+                            alert(message);
                         }
                     }
+
 
                     // Render helpers
                     const estadoBadge = (estado) => {
@@ -441,26 +479,66 @@ $email = $user['email'] ?? 'Sin email';
                         const action = btn.dataset.action;
 
                         if (action === 'edit') {
+                            console.group('[reservas] Editar', id);
                             try {
+                                console.time('[reservas] fetch detalle');
                                 const res = await fetch(`${API}?id=${encodeURIComponent(id)}`, {
                                     headers: {
                                         'Accept': 'application/json'
                                     }
                                 });
+                                console.timeEnd('[reservas] fetch detalle');
+                                console.debug('[reservas] HTTP', res.status);
                                 const json = await res.json();
+                                console.debug('[reservas] JSON', json);
                                 if (!json.ok) throw new Error(json.error || 'No se pudo obtener la reserva');
+
                                 const r = json.data;
-                                document.getElementById('edit_id').value = r.id;
-                                document.getElementById('edit_nombre').value = r.nombre;
-                                document.getElementById('edit_telefono').value = r.telefono;
-                                document.getElementById('edit_fecha').value = r.fecha;
-                                document.getElementById('edit_hora').value = r.hora?.slice(0, 5) || r.hora;
-                                document.getElementById('edit_personas').value = r.personas;
-                                document.getElementById('edit_estado').value = r.estado;
-                                document.getElementById('edit_notas').value = r.notas || '';
-                                openModal();
+                                const elId = document.getElementById('edit_id');
+                                const elNombre = document.getElementById('edit_nombre');
+                                const elTelefono = document.getElementById('edit_telefono');
+                                const elFecha = document.getElementById('edit_fecha');
+                                const elHora = document.getElementById('edit_hora');
+                                const elPersonas = document.getElementById('edit_personas');
+                                const elEstado = document.getElementById('edit_estado');
+                                const elNotas = document.getElementById('edit_notas');
+
+                                if (!elId || !elNombre || !elTelefono || !elFecha || !elHora || !elPersonas || !elEstado || !elNotas) {
+                                    console.error('[reservas] Faltan elementos del formulario de edición', {
+                                        elId,
+                                        elNombre,
+                                        elTelefono,
+                                        elFecha,
+                                        elHora,
+                                        elPersonas,
+                                        elEstado,
+                                        elNotas
+                                    });
+                                    throw new Error('Formulario de edición incompleto en el DOM.');
+                                }
+
+                                elId.value = r.id;
+                                elNombre.value = r.nombre ?? '';
+                                elTelefono.value = r.telefono ?? '';
+                                elFecha.value = r.fecha ?? '';
+                                elHora.value = (r.hora && r.hora.slice) ? r.hora.slice(0, 5) : (r.hora ?? '');
+                                elPersonas.value = r.personas ?? 1;
+                                elEstado.value = r.estado ?? 'pendiente';
+                                elNotas.value = r.notas ?? '';
+
+                                // Abrir modal con guardas
+                                try {
+                                    openModal();
+                                    console.debug('[reservas] modal de edición abierto');
+                                } catch (modalErr) {
+                                    console.error('[reservas] fallo al abrir modal:', modalErr);
+                                    throw modalErr; // re-lanza para notificar
+                                }
                             } catch (err) {
-                                notify('error', err.message);
+                                console.error('[reservas] error en editar:', err);
+                                notify('error', err.message || String(err));
+                            } finally {
+                                console.groupEnd();
                             }
                         }
 
