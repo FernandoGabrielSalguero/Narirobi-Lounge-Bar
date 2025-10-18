@@ -390,9 +390,9 @@ $email = $user['email'] ?? 'Sin email';
                     <button class="btn-icon" title="Editar" aria-label="Editar reserva" data-action="edit" data-id="${r.id}">
                         <span class="material-icons" aria-hidden="true">edit</span>
                     </button>
-                    <button class="btn-icon" title="Eliminar" aria-label="Eliminar reserva" data-action="delete" data-id="${r.id}">
-                        <span class="material-icons" aria-hidden="true">delete</span>
-                    </button>
+<button class="btn-icon" title="Eliminar" aria-label="Eliminar reserva" data-action="delete" data-id="${r.id}">
+    <span class="material-icons" aria-hidden="true" style="color:#dc2626;">delete</span>
+</button>
                 </td>
             </tr>
         `;
@@ -502,6 +502,8 @@ $email = $user['email'] ?? 'Sin email';
     </div>
 
     <script src="/views/partial/spinner-global.js" defer></script>
+    <div id="alert-container" class="alert-container" style="position:fixed;bottom:1rem;right:1rem;z-index:9999;"></div>
+
 </body>
 
 </html>
