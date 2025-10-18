@@ -225,6 +225,18 @@ $email = $user['email'] ?? 'Sin email';
                 </div>
             </div>
 
+            <!-- Modal confirmación eliminar -->
+            <div id="modalEliminar" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalEliminarTitulo">
+                <div class="modal-content" style="max-width: 520px;">
+                    <h3 id="modalEliminarTitulo">Eliminar reserva</h3>
+                    <p id="modalEliminarTexto">¿Confirmás eliminar la reserva seleccionada?</p>
+                    <div class="form-buttons">
+                        <button id="btnConfirmarEliminar" class="btn btn-aceptar" type="button">Eliminar</button>
+                        <button id="btnCancelarEliminar" class="btn btn-cancelar" type="button">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+
             <style>
                 /* Accesibilidad mínima */
                 .sr-only {
@@ -271,11 +283,23 @@ $email = $user['email'] ?? 'Sin email';
                     border: 1px solid #fecaca
                 }
 
+                /* Botones de acción sólo ícono en tabla */
+                .data-table .btn-icon {
+                    padding: .25rem;
+                    line-height: 1;
+                    vertical-align: middle
+                }
+
+                .data-table .btn-icon .material-icons {
+                    font-size: 20px
+                }
+
                 /* Evitar FOUC sencillo en modal */
                 .modal.hidden {
                     display: none
                 }
             </style>
+
 
             <script>
                 (() => {
@@ -285,15 +309,65 @@ $email = $user['email'] ?? 'Sin email';
                     const formEditar = document.getElementById('formEditarReserva');
                     const tablaBody = document.querySelector('#tablaReservas tbody');
 
-                    // Modal helpers
-                    const modal = document.getElementById('modalReserva');
+                    // Modal Edición
+                    const modalEdit = document.getElementById('modalReserva');
                     window.openModal = () => {
-                        modal.classList.remove('hidden');
-                        modal.querySelector('input,select,textarea').focus();
+                        modalEdit.classList.remove('hidden');
+                        const first = modalEdit.querySelector('input,select,textarea');
+                        if (first) first.focus();
                     };
                     window.closeModal = () => {
-                        modal.classList.add('hidden');
+                        modalEdit.classList.add('hidden');
                     };
+
+                    // Modal Eliminar
+                    const modalEliminar = document.getElementById('modalEliminar');
+                    const btnConfirmarEliminar = document.getElementById('btnConfirmarEliminar');
+                    const btnCancelarEliminar = document.getElementById('btnCancelarEliminar');
+                    let idAEliminar = null;
+                    const openModalEliminar = (id) => {
+                        idAEliminar = id;
+                        modalEliminar.classList.remove('hidden');
+                        btnConfirmarEliminar.focus();
+                    };
+                    const closeModalEliminar = () => {
+                        modalEliminar.classList.add('hidden');
+                        idAEliminar = null;
+                    };
+                    btnCancelarEliminar.addEventListener('click', closeModalEliminar);
+                    btnConfirmarEliminar.addEventListener('click', async () => {
+                        if (!idAEliminar) return;
+                        const fd = new FormData();
+                        fd.append('_method', 'delete');
+                        fd.append('id', String(idAEliminar));
+                        try {
+                            const res = await fetch(API, {
+                                method: 'POST',
+                                body: fd
+                            });
+                            const json = await res.json();
+                            if (!json.ok) throw new Error(json.error || 'No se pudo eliminar la reserva');
+                            notify('success', 'Reserva eliminada');
+                            closeModalEliminar();
+                            await cargarReservas();
+                        } catch (err) {
+                            notify('error', err.message);
+                        }
+                    });
+
+                    // Notificaciones: wrapper seguro para evitar errores en showAlert
+                    function notify(type, message) {
+                        try {
+                            if (typeof showAlert === 'function') {
+                                showAlert(type, message);
+                            } else {
+                                throw new Error('showAlert no disponible');
+                            }
+                        } catch (e) {
+                            // Fallback mínimo
+                            alert((type ? `[${type.toUpperCase()}] ` : '') + message);
+                        }
+                    }
 
                     // Render helpers
                     const estadoBadge = (estado) => {
@@ -313,11 +387,11 @@ $email = $user['email'] ?? 'Sin email';
                 <td>${estadoBadge(r.estado)}</td>
                 <td>${notas}</td>
                 <td>
-                    <button class="btn btn-info" title="Editar" aria-label="Editar reserva" data-action="edit" data-id="${r.id}">
-                        <span class="material-icons">edit</span>
+                    <button class="btn-icon" title="Editar" aria-label="Editar reserva" data-action="edit" data-id="${r.id}">
+                        <span class="material-icons" aria-hidden="true">edit</span>
                     </button>
-                    <button class="btn btn-cancelar" title="Eliminar" aria-label="Eliminar reserva" data-action="delete" data-id="${r.id}">
-                        <span class="material-icons">delete</span>
+                    <button class="btn-icon" title="Eliminar" aria-label="Eliminar reserva" data-action="delete" data-id="${r.id}">
+                        <span class="material-icons" aria-hidden="true">delete</span>
                     </button>
                 </td>
             </tr>
@@ -336,7 +410,7 @@ $email = $user['email'] ?? 'Sin email';
                             if (!json.ok) throw new Error(json.error || 'Error al cargar reservas');
                             tablaBody.innerHTML = json.data.map(filaReserva).join('');
                         } catch (err) {
-                            showAlert('error', err.message);
+                            notify('error', err.message);
                         }
                     };
 
@@ -351,15 +425,15 @@ $email = $user['email'] ?? 'Sin email';
                             });
                             const json = await res.json();
                             if (!json.ok) throw new Error(json.error || 'No se pudo crear la reserva');
-                            showAlert('success', '¡Reserva creada!');
+                            notify('success', '¡Reserva creada!');
                             formNueva.reset();
                             await cargarReservas();
                         } catch (err) {
-                            showAlert('error', err.message);
+                            notify('error', err.message);
                         }
                     });
 
-                    // Edit (open modal)
+                    // Delegación: Acciones en tabla
                     document.addEventListener('click', async (e) => {
                         const btn = e.target.closest('button[data-action]');
                         if (!btn) return;
@@ -386,27 +460,12 @@ $email = $user['email'] ?? 'Sin email';
                                 document.getElementById('edit_notas').value = r.notas || '';
                                 openModal();
                             } catch (err) {
-                                showAlert('error', err.message);
+                                notify('error', err.message);
                             }
                         }
 
                         if (action === 'delete') {
-                            if (!confirm('¿Eliminar la reserva seleccionada?')) return;
-                            const fd = new FormData();
-                            fd.append('_method', 'delete');
-                            fd.append('id', id);
-                            try {
-                                const res = await fetch(API, {
-                                    method: 'POST',
-                                    body: fd
-                                });
-                                const json = await res.json();
-                                if (!json.ok) throw new Error(json.error || 'No se pudo eliminar la reserva');
-                                showAlert('success', 'Reserva eliminada');
-                                await cargarReservas();
-                            } catch (err) {
-                                showAlert('error', err.message);
-                            }
+                            openModalEliminar(id);
                         }
                     });
 
@@ -422,11 +481,12 @@ $email = $user['email'] ?? 'Sin email';
                             });
                             const json = await res.json();
                             if (!json.ok) throw new Error(json.error || 'No se pudo actualizar la reserva');
-                            showAlert('success', 'Reserva actualizada');
+                            // Primero cerramos modal, luego notificamos (evita problemas de overlay/foco/containers)
                             closeModal();
+                            notify('success', 'Reserva actualizada');
                             await cargarReservas();
                         } catch (err) {
-                            showAlert('error', err.message);
+                            notify('error', err.message);
                         }
                     });
 
@@ -436,6 +496,7 @@ $email = $user['email'] ?? 'Sin email';
                     });
                 })();
             </script>
+
 
         </div>
     </div>
