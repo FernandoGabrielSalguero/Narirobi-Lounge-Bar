@@ -2,7 +2,9 @@
 
 declare(strict_types=1); ?>
 <main id="app-main">
-<h3>Este es el body</h3>
+    <h3>Este es el body</h3>
+    <!-- Contenedor para montar el modal de login no eliminar y no tocar ya que se renderizan los modales desde acá-->
+    <div id="modalHost" aria-live="polite"></div>
 </main>
 
 <style>
