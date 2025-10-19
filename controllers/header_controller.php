@@ -374,7 +374,7 @@ JS;
   }
 
   .border_botons{
-    border-color: #000000ff;
+    border: 2px solid black;
   }
 </style>
 HTML;
