@@ -17,12 +17,21 @@ try {
         case 'script':
             header('Content-Type: application/javascript; charset=utf-8');
             // NOTA: usar HEREDOC <<< 'JS' (NOWDOC) evita que PHP intente interpretar ${...} del template string
+
             echo <<<'JS'
 (function() {
-  const openBtn = document.getElementById('openLogin');
+  // --- Elements ---
+  const menuToggle = document.getElementById('menuToggle');
+  const menuPanel  = document.getElementById('menuPanel');
+  const openBtn    = document.getElementById('openLogin');
+  const openReservaBtn = document.getElementById('openReserva');
   const host = document.getElementById('modalHost');
-  let modalEl = null;
 
+  // Modales cacheados
+  let modalEl = null;        // login
+  let modalReservaEl = null; // reservas
+
+  // --- Utils ---
   function safeConsole(level){
     try {
       if (typeof console !== 'undefined' && typeof console[level] === 'function') {
@@ -31,130 +40,176 @@ try {
     } catch(_e){}
     return (typeof console !== 'undefined' && console.log) ? console.log.bind(console) : function(){};
   }
-
   function log(level, msg, extra){
     const fn = safeConsole(level);
     const prefix = `[AuthUI][${level}]`;
     const text = `${prefix} ${String(msg)}`;
-    if (typeof extra !== 'undefined') { fn(text, extra); }
-    else { fn(text); }
+    if (typeof extra !== 'undefined') { fn(text, extra); } else { fn(text); }
   }
+  function toggleMenu(show){
+    const shouldOpen = (typeof show === 'boolean') ? show : menuPanel.classList.contains('hidden');
+    if (shouldOpen){
+      menuPanel.classList.remove('hidden');
+      menuToggle.setAttribute('aria-expanded','true');
+    } else {
+      menuPanel.classList.add('hidden');
+      menuToggle.setAttribute('aria-expanded','false');
+    }
+  }
+  document.addEventListener('click', (e)=>{
+    if (!menuPanel.contains(e.target) && e.target !== menuToggle){
+      toggleMenu(false);
+    }
+  });
+  menuToggle?.addEventListener('click', (e)=>{ e.stopPropagation(); toggleMenu(); });
 
+  // --- LOGIN ---
   async function ensureModalLoadedAndOpen(){
     try{
       if(!modalEl){
         log('info','Cargando modal de login…');
-        const resp = await fetch('/core/auth/AuthController.php?action=view_login', {
-          credentials:'same-origin', cache:'no-store'
-        });
+        const resp = await fetch('/core/auth/AuthController.php?action=view_login', { credentials:'same-origin', cache:'no-store' });
         const html = await resp.text();
-        host.innerHTML = html;
-
+        host.insertAdjacentHTML('beforeend', html);
         modalEl = document.getElementById('modal');
-        if(!modalEl){
-          log('error','No se pudo montar el modal: #modal no encontrado en HTML recibido.');
-          return;
-        }
-        wireUpModal();
+        if(!modalEl){ log('error','No se pudo montar #modal (login).'); return; }
+        wireUpLoginModal();
         log('info','Modal de login montado.');
       }
-      openModal();
+      openLoginModal();
     }catch(e){
       log('error','Fallo al cargar la vista del login.', e);
       window.showAlert?.('error','No se pudo cargar el formulario de login.');
     }
   }
-
-  function wireUpModal(){
+  function wireUpLoginModal(){
     const form = document.getElementById('loginForm');
     const cancelar = document.getElementById('btnCancelar');
     const usuario = document.getElementById('usuario');
     const pass = document.getElementById('contrasena');
 
-    window.openModal = function(){
+    window.openLoginModal = function(){
       modalEl.classList.remove('hidden');
       openBtn?.setAttribute('aria-expanded','true');
       setTimeout(()=> usuario?.focus(), 0);
     };
-    window.closeModal = function(){
+    window.closeLoginModal = function(){
       modalEl.classList.add('hidden');
       openBtn?.setAttribute('aria-expanded','false');
       openBtn?.focus();
     };
 
-    if(cancelar){
-      cancelar.addEventListener('click', (ev)=>{
-        ev.preventDefault(); ev.stopPropagation();
-        log('info','Cancelar presionado, cerrando modal.');
-        window.closeModal();
-      });
-    } else {
-      log('warn','Botón Cancelar (#btnCancelar) no encontrado.');
+    cancelar?.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopPropagation(); window.closeLoginModal(); });
+    modalEl.addEventListener('click', (e)=>{ if(e.target === modalEl) window.closeLoginModal(); });
+    document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && !modalEl.classList.contains('hidden')) window.closeLoginModal(); });
+
+    form?.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const payload = { usuario: (usuario?.value||'').trim(), contrasena: pass?.value||'' };
+      if(!payload.usuario || !payload.contrasena){ window.showAlert?.('info','Completá usuario y contraseña.'); return; }
+      try{
+        const resp = await fetch('/core/auth/AuthController.php?action=login', {
+          method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload),
+          credentials:'same-origin', cache:'no-store'
+        });
+        let json=null; try{ json=await resp.json(); }catch(_e){}
+        if(resp.ok && json?.ok){ window.showAlert?.('success','¡Operación completada con éxito!'); if(json.data?.redirect) location.href=json.data.redirect; }
+        else{ const msg = json?.error || `Error de autenticación (HTTP ${resp.status}).`; window.showAlert?.('error', msg); }
+      }catch(err){ window.showAlert?.('error','Error de red o servidor no disponible.'); }
+    });
+  }
+  function openLoginModal(){ window.openLoginModal?.(); }
+
+  // --- RESERVAS ---
+  async function ensureReservaLoadedAndOpen(){
+    try{
+      if(!modalReservaEl){
+        log('info','Cargando modal de reservas…');
+        const resp = await fetch('/controllers/body_controller.php?action=view_reserva', { credentials:'same-origin', cache:'no-store' });
+        const html = await resp.text();
+        host.insertAdjacentHTML('beforeend', html);
+        modalReservaEl = document.getElementById('modalReserva');
+        if(!modalReservaEl){ log('error','No se pudo montar #modalReserva.'); return; }
+        wireUpReservaModal();
+        log('info','Modal de reservas montado.');
+      }
+      openReservaModal();
+    }catch(e){
+      log('error','Fallo al cargar la vista de reservas.', e);
+      window.showAlert?.('error','No se pudo cargar el formulario de reservas.');
     }
+  }
+  function wireUpReservaModal(){
+    const form = document.getElementById('reservaForm');
+    const cancelar = document.getElementById('btnCancelarReserva');
+    const nombre   = document.getElementById('res_nombre');
+    const telefono = document.getElementById('res_telefono');
+    const fecha    = document.getElementById('res_fecha');
+    const hora     = document.getElementById('res_hora');
+    const personas = document.getElementById('res_personas');
+    const notas    = document.getElementById('res_notas');
 
-    modalEl.addEventListener('click', (e)=>{
-      if(e.target === modalEl){
-        log('info','Overlay clickeado, cerrando modal.');
-        window.closeModal();
-      }
-    });
+    window.openReservaModal = function(){
+      modalReservaEl.classList.remove('hidden');
+      openReservaBtn?.setAttribute('aria-expanded','true');
+      setTimeout(()=> nombre?.focus(), 0);
+    };
+    window.closeReservaModal = function(){
+      modalReservaEl.classList.add('hidden');
+      openReservaBtn?.setAttribute('aria-expanded','false');
+      openReservaBtn?.focus();
+    };
 
-    document.addEventListener('keydown', (e)=>{
-      if(e.key === 'Escape' && !modalEl.classList.contains('hidden')){
-        log('info','Escape presionado, cerrando modal.');
-        window.closeModal();
-      }
-    });
+    cancelar?.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopPropagation(); window.closeReservaModal(); });
+    modalReservaEl.addEventListener('click', (e)=>{ if(e.target === modalReservaEl) window.closeReservaModal(); });
+    document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && !modalReservaEl.classList.contains('hidden')) window.closeReservaModal(); });
 
     form?.addEventListener('submit', async (e)=>{
       e.preventDefault();
       const payload = {
-        usuario: usuario?.value?.trim() || '',
-        contrasena: pass?.value || ''
+        nombre:   (nombre?.value||'').trim(),
+        telefono: (telefono?.value||'').trim(),
+        fecha:    (fecha?.value||'').trim(),
+        hora:     (hora?.value||'').trim(),
+        personas: parseInt(personas?.value||'0', 10) || 0,
+        notas:    (notas?.value||'').trim()
       };
-      if(!payload.usuario || !payload.contrasena){
-        log('warn','Campos incompletos.', payload);
-        window.showAlert?.('info','Completá usuario y contraseña.');
-        return;
+      if(!payload.nombre || !payload.telefono || !payload.fecha || !payload.hora || payload.personas<=0){
+        window.showAlert?.('info','Completá nombre, teléfono, fecha, hora y cantidad de personas.'); return;
       }
       try{
-        log('info','Enviando login…', { endpoint:'/core/auth/AuthController.php?action=login' });
-        const resp = await fetch('/core/auth/AuthController.php?action=login', {
-          method:'POST',
-          headers:{ 'Content-Type':'application/json' },
-          body: JSON.stringify(payload),
-          credentials:'same-origin',
-          cache:'no-store'
+        const resp = await fetch('/controllers/body_controller.php?action=crear_reserva', {
+          method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload),
+          credentials:'same-origin', cache:'no-store'
         });
-        let json = null;
-        try{ json = await resp.json(); }catch(parseErr){
-          log('error','No se pudo parsear JSON de la respuesta.', parseErr);
-        }
-        log('info','Respuesta login recibida.', { status: resp.status, body: json });
+        let json=null; try{ json=await resp.json(); }catch(_e){}
         if(resp.ok && json?.ok){
-          window.showAlert?.('success','¡Operación completada con éxito!');
-          if(json.data?.redirect){ window.location.href = json.data.redirect; }
+          window.showAlert?.('success','Reserva creada. ¡Gracias!');
+          window.closeReservaModal();
+          // opcional: limpiar
+          form.reset();
         }else{
-          const msg = (json && json.error) ? json.error : `Error de autenticación (HTTP ${resp.status}).`;
+          const msg = json?.error || `No se pudo crear la reserva (HTTP ${resp.status}).`;
           window.showAlert?.('error', msg);
         }
       }catch(err){
-        log('error','Error de red al enviar login.', err);
         window.showAlert?.('error','Error de red o servidor no disponible.');
       }
     });
   }
+  function openReservaModal(){ window.openReservaModal?.(); }
 
-  function openModal(){ window.openModal?.(); }
+  // --- Wireup ---
+  openBtn?.addEventListener('click', (e)=>{ e.stopPropagation(); toggleMenu(false); ensureModalLoadedAndOpen(); }, { once:true });
+  openBtn?.addEventListener('click', ()=> modalEl && openLoginModal());
 
-  if(openBtn){
-    openBtn.addEventListener('click', ensureModalLoadedAndOpen, { once:true });
-    openBtn.addEventListener('click', ()=> modalEl && window.openModal());
-  }else{
-    log('error','No se encontró el botón #openLogin.');
-  }
+  openReservaBtn?.addEventListener('click', (e)=>{ e.stopPropagation(); toggleMenu(false); ensureReservaLoadedAndOpen(); }, { once:true });
+  openReservaBtn?.addEventListener('click', ()=> modalReservaEl && openReservaModal());
+
 })();
 JS;
+
+
             exit;
 
         default:
