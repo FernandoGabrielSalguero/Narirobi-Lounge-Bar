@@ -90,7 +90,49 @@ $email   = $user['email'] ?? 'Sin email';
         .w-100 {
             width: 100%;
         }
+
+        /* === Iconos de acciones (reemplazan a botones) === */
+        .action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            cursor: pointer;
+            user-select: none;
+            transition: transform .1s ease;
+        }
+
+        .action:active {
+            transform: scale(0.96);
+        }
+
+        .action[aria-disabled="true"] {
+            opacity: .45;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .action-download {
+            background: #1d4ed8;
+        }
+
+        /* azul */
+        .action-redeem {
+            background: #16a34a;
+        }
+
+        /* verde */
+
+        .action .material-icons,
+        .action .material-symbols-outlined {
+            color: #fff;
+            font-size: 22px;
+            line-height: 1;
+        }
     </style>
+
 </head>
 
 
@@ -325,7 +367,8 @@ $email   = $user['email'] ?? 'Sin email';
                 }
                 rows.forEach((r, idx) => {
                     const vencida = esVencida(r.fecha_vencimiento);
-                    const canjeDisabled = (r.estado === 'canjeado' || vencida) ? 'disabled aria-disabled="true"' : '';
+                    const isDisabled = (r.estado === 'canjeado' || vencida);
+                    const ariaDisabled = isDisabled ? 'aria-disabled="true"' : '';
                     tablaBody.insertAdjacentHTML('beforeend', `
         <tr>
           <td>${idx + 1}</td>
@@ -335,35 +378,43 @@ $email   = $user['email'] ?? 'Sin email';
           <td>${estadoBadge(r.estado, vencida)}</td>
           <td>
             <div class="acciones-wrap">
-              <button class="btn btn-info btn-pdf" data-row='${JSON.stringify(r).replace(/'/g,"&apos;")}' aria-label="Descargar PDF ${r.codigo}">
+              <span class="action action-download" role="button" tabindex="0"
+                    data-row='${JSON.stringify(r).replace(/'/g,"&apos;")}'
+                    aria-label="Descargar PDF ${r.codigo}">
                 <span class="material-icons" aria-hidden="true">download</span>
-              </button>
-              <button class="btn btn-aceptar" ${canjeDisabled} data-code="${r.codigo}" data-vencida="${vencida}" aria-label="Canjear ${r.codigo}">
+              </span>
+              <span class="action action-redeem" role="button" tabindex="${isDisabled ? '-1' : '0'}"
+                    ${ariaDisabled} data-code="${r.codigo}" data-vencida="${vencida}"
+                    aria-label="Canjear ${r.codigo}">
                 <span class="material-icons" aria-hidden="true">shopping_bag</span>
-              </button>
+              </span>
             </div>
           </td>
         </tr>
       `);
                 });
 
-                // Bind PDF
-                tablaBody.querySelectorAll('.btn-pdf').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const row = JSON.parse(btn.getAttribute('data-row').replaceAll('&apos;', "'"));
-                        generarPDF(row);
+                // Bind PDF (click/teclado)
+                tablaBody.querySelectorAll('.action-download').forEach(el => {
+                    const handler = async () => {
+                        const row = JSON.parse(el.getAttribute('data-row').replaceAll('&apos;', "'"));
+                        await generarPDF(row);
+                    };
+                    el.addEventListener('click', handler);
+                    el.addEventListener('keydown', (ev) => {
+                        if (ev.key === 'Enter' || ev.key === ' ') handler();
                     });
                 });
 
-                // Bind canjear
-                tablaBody.querySelectorAll('button.btn-aceptar').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const vencida = btn.getAttribute('data-vencida') === 'true';
-                        if (vencida) {
+                // Bind canjear (click/teclado)
+                tablaBody.querySelectorAll('.action-redeem').forEach(el => {
+                    const handler = () => {
+                        const vencida = el.getAttribute('data-vencida') === 'true';
+                        if (vencida || el.getAttribute('aria-disabled') === 'true') {
                             showAlert('error', 'La Gift Card está vencida.');
                             return;
                         }
-                        const code = btn.getAttribute('data-code');
+                        const code = el.getAttribute('data-code');
                         codigoCanjeInput.value = code;
                         openModal(modal);
                         setTimeout(() => codigoCanjeInput.focus(), 50);
@@ -393,9 +444,14 @@ $email   = $user['email'] ?? 'Sin email';
                                 showAlert('error', 'Error de red al canjear.');
                             }
                         };
+                    };
+                    el.addEventListener('click', handler);
+                    el.addEventListener('keydown', (ev) => {
+                        if (ev.key === 'Enter' || ev.key === ' ') handler();
                     });
                 });
             }
+
 
             async function cargarTabla() {
                 const params = new URLSearchParams();
@@ -480,35 +536,94 @@ $email   = $user['email'] ?? 'Sin email';
                 }
             });
 
-            // Generador PDF (jsPDF)
-            function generarPDF(row) {
-                // row: {nombre, fecha_vencimiento, codigo, estado, texto?}
+            // Generador PDF (jsPDF) con diseño de gift card
+            async function generarPDF(row) {
+                // row: {nombre, fecha_vencimiento, codigo}
                 const {
                     jsPDF
                 } = window.jspdf;
-                const doc = new jsPDF();
+                const doc = new jsPDF({
+                    unit: 'mm',
+                    format: 'a4',
+                    orientation: 'portrait'
+                });
 
-                doc.setFontSize(18);
-                doc.text('Nairobi Lounge Bar', 105, 20, {
+                // === Fondo oscuro (similar a captura) ===
+                doc.setFillColor(10, 40, 36); // verde muy oscuro
+                doc.rect(0, 0, 210, 297, 'F');
+
+                // === Cargar logo SVG desde /assets ===
+                const logoUrl = '../../assets/logo_giftCard.svg';
+                const logoPngDataUrl = await svgToPngDataUrl(logoUrl, 140, 140); // tamaño cómodo para rasterizar
+                // Posicionar centrado arriba
+                const logoW = 40,
+                    logoH = 40;
+                const logoX = (210 - logoW) / 2;
+                const logoY = 28;
+                doc.addImage(logoPngDataUrl, 'PNG', logoX, logoY, logoW, logoH);
+
+                // === Tipografías y color ===
+                doc.setTextColor(255, 255, 255);
+
+                // Título "Hola, [Nombre]" + "¡Tenes un obsequio!"
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(22);
+                doc.text(`Hola, ${row.nombre}`, 105, 90, {
                     align: 'center'
                 });
+
+                doc.setFont('helvetica', 'italic');
+                doc.setFontSize(20);
+                doc.text('¡Tenes un obsequio!', 105, 102, {
+                    align: 'center'
+                });
+
+                // Línea informativa: "Podes canjearlo hasta ... usando el siguiente código ..."
+                doc.setFont('helvetica', 'normal');
                 doc.setFontSize(14);
-                doc.text('Gift Card', 105, 30, {
+                const canje = `Podes canjearlo hasta ${row.fecha_vencimiento} usando el siguiente código ${row.codigo}`;
+                const wrapped = doc.splitTextToSize(canje, 170);
+                doc.text(wrapped, 105, 135, {
                     align: 'center'
                 });
 
+                // Dirección
+                doc.setFont('helvetica', 'italic');
                 doc.setFontSize(12);
-                const y0 = 50;
-                doc.text(`Nombre: ${row.nombre}`, 20, y0);
-                doc.text(`Vencimiento: ${row.fecha_vencimiento}`, 20, y0 + 10);
-                doc.text(`Código: ${row.codigo}`, 20, y0 + 20);
-                if (row.texto) {
-                    const split = doc.splitTextToSize(`Texto: ${row.texto}`, 170);
-                    doc.text(split, 20, y0 + 30);
-                }
-                doc.line(20, y0 - 8, 190, y0 - 8);
+                doc.text('Suipacha 238 - Sexta Sección - Mendoza', 105, 265, {
+                    align: 'center'
+                });
 
                 doc.save(`giftcard_${row.codigo}.pdf`);
+            }
+
+            // Utilidad: convertir un SVG (ruta) a DataURL PNG para jsPDF
+            async function svgToPngDataUrl(url, targetW = 120, targetH = 120) {
+                const svgText = await fetch(url).then(r => {
+                    if (!r.ok) throw new Error('No se pudo cargar el logo');
+                    return r.text();
+                });
+                const svgBlob = new Blob([svgText], {
+                    type: 'image/svg+xml;charset=utf-8'
+                });
+                const svgUrl = URL.createObjectURL(svgBlob);
+
+                const img = await new Promise((resolve, reject) => {
+                    const i = new Image();
+                    i.onload = () => resolve(i);
+                    i.onerror = reject;
+                    i.src = svgUrl;
+                });
+
+                const canvas = document.createElement('canvas');
+                canvas.width = targetW;
+                canvas.height = targetH;
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, targetW, targetH);
+
+                URL.revokeObjectURL(svgUrl);
+                return canvas.toDataURL('image/png');
             }
 
             // Primera carga
