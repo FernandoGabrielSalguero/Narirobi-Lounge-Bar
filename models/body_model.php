@@ -41,27 +41,36 @@ final class BodyModel
 
   /**
    * Devuelve lista de URLs para el carrusel.
-   * Tolera ambos esquemas de columna: `url` o `url_imagen`.
+   * Detecta si existe la columna `url_imagen`; si no existe usa `url`.
    */
   public function getImages(): array
   {
-    // Intento principal: columna `url`
-    $sql = "SELECT COALESCE(url, url_imagen) AS url
-                FROM imagenes
-                WHERE COALESCE(url, url_imagen) IS NOT NULL
-                ORDER BY id ASC";
+    // Detectar si existe `url_imagen`
+    $hasUrlImagen = false;
+    try {
+        $chk = $this->pdo->query("SHOW COLUMNS FROM imagenes LIKE 'url_imagen'");
+        $hasUrlImagen = (bool) $chk->fetch();
+    } catch (\Throwable $e) {
+        $hasUrlImagen = false;
+    }
+
+    $sql = $hasUrlImagen
+        ? "SELECT COALESCE(url_imagen, url) AS url FROM imagenes WHERE COALESCE(url_imagen, url) IS NOT NULL ORDER BY id ASC"
+        : "SELECT url AS url FROM imagenes WHERE url IS NOT NULL AND url <> '' ORDER BY id ASC";
+
     $stmt = $this->pdo->query($sql);
     $rows = $stmt->fetchAll();
 
     $images = [];
     foreach ($rows as $r) {
-      $u = trim((string)($r['url'] ?? ''));
-      if ($u !== '') {
-        $images[] = ['url' => $u];
-      }
+        $u = trim((string)($r['url'] ?? ''));
+        if ($u !== '') {
+            $images[] = ['url' => $u];
+        }
     }
     return $images;
   }
+
 
   /**
    * Devuelve productos agrupados por categoría y subcategoría:
@@ -74,7 +83,7 @@ final class BodyModel
   public function getGroupedProducts(): array
   {
     $sql = "
-            SELECT
+                        SELECT
                 c.id  AS categoria_id,
                 c.nombre AS categoria_nombre,
                 s.id  AS subcategoria_id,
@@ -86,9 +95,8 @@ final class BodyModel
                 p.aclaracion_1,
                 p.aclaracion_2,
                 p.aclaracion_3,
-                p.detalle
-                /* No referenciamos p.icono explícitamente para tolerar la ausencia de la columna
-                   si aún no se aplicó la migración. p.* incluirá icono cuando exista. */
+                p.detalle,
+                p.icono
             FROM productos p
             INNER JOIN categorias c   ON c.id = p.categoria AND c.estado = 1
             INNER JOIN subcategorias s ON s.id = p.subcategoria AND s.estado = 1
@@ -97,12 +105,7 @@ final class BodyModel
 
     $stmt = $this->pdo->query($sql);
     $rows = $stmt->fetchAll();
-
-    // Detectar si la columna icono existe en el resultado (tras migración)
-    $hasIcon = false;
-    if (!empty($rows)) {
-      $hasIcon = array_key_exists('icono', $rows[0]);
-    }
+    $hasIcon = true;
 
     // Agrupar
     $byCat = [];

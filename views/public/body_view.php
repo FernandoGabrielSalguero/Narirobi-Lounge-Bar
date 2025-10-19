@@ -14,7 +14,7 @@ declare(strict_types=1); ?>
 
     <!-- Menú lateral flotante -->
     <button id="fabMenu" class="fab" aria-haspopup="true" aria-controls="sideMenu" aria-expanded="false">☰</button>
-    <aside id="sideMenu" class="sidemenu" aria-hidden="true">
+    <aside id="sideMenu" class="sidemenu" aria-hidden="true" inert tabindex="-1">
         <header class="sidemenu-header">
             <h4>Secciones</h4>
             <button id="closeMenu" class="close" aria-label="Cerrar menú">×</button>
@@ -542,12 +542,37 @@ declare(strict_types=1); ?>
         }
 
         function toggleMenu(force) {
-            const open = typeof force === 'boolean' ? force : !$menu.classList.contains('open');
-            $menu.classList.toggle('open', open);
-            $backdrop.hidden = !open;
-            $fab.setAttribute('aria-expanded', String(open));
-            $menu.setAttribute('aria-hidden', String(!open));
+            const willOpen = typeof force === 'boolean' ? force : !$menu.classList.contains('open');
+
+            if (willOpen) {
+                // Mostrar menú: habilitar interacción y foco
+                $menu.removeAttribute('inert');
+                $menu.setAttribute('aria-hidden', 'false');
+                $menu.classList.add('open');
+                $backdrop.hidden = false;
+                $fab.setAttribute('aria-expanded', 'true');
+
+                // Enfocar un elemento dentro DEL MENÚ (evita warning de aria-hidden)
+                setTimeout(() => {
+                    $close.focus();
+                }, 0);
+            } else {
+                // Mover foco FUERA del menú antes de ocultarlo (evita warning)
+                $fab.focus();
+                $menu.classList.remove('open');
+                $backdrop.hidden = true;
+                $fab.setAttribute('aria-expanded', 'false');
+                $menu.setAttribute('aria-hidden', 'true');
+                $menu.setAttribute('inert', '');
+            }
         }
+
+        // Cerrar con Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && $menu.classList.contains('open')) {
+                toggleMenu(false);
+            }
+        });
 
         $fab.addEventListener('click', () => toggleMenu());
         $close.addEventListener('click', () => toggleMenu(false));
