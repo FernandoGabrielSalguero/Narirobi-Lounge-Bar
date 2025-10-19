@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+// Visibilidad de errores para diagnosticar el 500 (se puede desactivar luego)
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
+
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../models/header_model.php';
 
@@ -11,22 +16,28 @@ try {
     switch ($action) {
         case 'script':
             header('Content-Type: application/javascript; charset=utf-8');
-            // Sirve el JS del header (corrige bugs del original y desacopla del index)
-            echo <<<JS
+            // NOTA: usar HEREDOC <<< 'JS' (NOWDOC) evita que PHP intente interpretar ${...} del template string
+            echo <<<'JS'
 (function() {
   const openBtn = document.getElementById('openLogin');
   const host = document.getElementById('modalHost');
   let modalEl = null;
 
   function safeConsole(level){
-    return (console && typeof console[level] === 'function') ? console[level].bind(console) : console.log.bind(console);
+    try {
+      if (typeof console !== 'undefined' && typeof console[level] === 'function') {
+        return console[level].bind(console);
+      }
+    } catch(_e){}
+    return (typeof console !== 'undefined' && console.log) ? console.log.bind(console) : function(){};
   }
 
   function log(level, msg, extra){
     const fn = safeConsole(level);
-    const prefix = `[AuthUI][\${level}]`;
-    if (typeof extra !== 'undefined') fn(`${prefix} ${msg}`, extra);
-    else fn(`${prefix} ${msg}`);
+    const prefix = `[AuthUI][${level}]`;
+    const text = `${prefix} ${String(msg)}`;
+    if (typeof extra !== 'undefined') { fn(text, extra); }
+    else { fn(text); }
   }
 
   async function ensureModalLoadedAndOpen(){
@@ -124,7 +135,7 @@ try {
           window.showAlert?.('success','¡Operación completada con éxito!');
           if(json.data?.redirect){ window.location.href = json.data.redirect; }
         }else{
-          const msg = (json && json.error) ? json.error : `Error de autenticación (HTTP ${resp . status}).`;
+          const msg = (json && json.error) ? json.error : `Error de autenticación (HTTP ${resp.status}).`;
           window.showAlert?.('error', msg);
         }
       }catch(err){
@@ -145,6 +156,7 @@ try {
 })();
 JS;
             exit;
+
         default:
             http_response_code(400);
             header('Content-Type: application/json; charset=utf-8');
