@@ -312,7 +312,7 @@ JS;
       <div class="input-group">
         <label for="res_telefono">Teléfono</label>
         <div class="input-icon input-icon-phone">
-          <input type="tel" id="res_telefono" name="telefono" placeholder="+54 9 ..." required />
+          <input type="tel" id="res_telefono" name="telefono" placeholder="2616686062" required />
         </div>
       </div>
 
@@ -367,6 +367,10 @@ JS;
   @media (min-width: 768px){
     .res-grid{ grid-template-columns:1fr 1fr; align-items:start; }
     .res-buttons{ grid-column:1 / -1; }
+  }
+
+  .color_label {
+    color: #000000ff;
   }
 </style>
 HTML;
