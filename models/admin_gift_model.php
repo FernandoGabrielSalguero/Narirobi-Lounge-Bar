@@ -74,8 +74,8 @@ class AdminGiftModel
             $params[] = '%' . $nombre . '%';
         }
         if ($codigo !== null && $codigo !== '') {
-            $where[] = 'codigo = ?';
-            $params[] = $codigo;
+            $where[] = 'codigo LIKE ?';
+            $params[] = '%' . $codigo . '%';
         }
         if ($estado !== null && $estado !== '') {
             $where[] = 'estado = ?';

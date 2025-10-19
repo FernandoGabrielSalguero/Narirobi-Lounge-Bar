@@ -327,6 +327,7 @@ $email   = $user['email'] ?? 'Sin email';
             const codigoCanjeInput = document.getElementById('codigo_canje');
             const btnConfirmarCanje = document.getElementById('btnConfirmarCanje');
             const btnCancelarCanje = document.getElementById('btnCancelarCanje');
+            btnCancelarCanje.addEventListener('click', () => closeModal(modal));
 
             // Modal confirm create
             const modalConfirm = document.getElementById('modalConfirmCreate');
@@ -538,7 +539,7 @@ $email   = $user['email'] ?? 'Sin email';
 
             // Generador PDF (jsPDF) con diseño de gift card
             async function generarPDF(row) {
-                // row: {nombre, fecha_vencimiento, codigo}
+                // row: {nombre, fecha_vencimiento, codigo, texto}
                 const {
                     jsPDF
                 } = window.jspdf;
@@ -554,7 +555,7 @@ $email   = $user['email'] ?? 'Sin email';
 
                 // === Cargar logo SVG desde /assets ===
                 const logoUrl = '../../assets/logo_giftCard.svg';
-                const logoPngDataUrl = await svgToPngDataUrl(logoUrl, 140, 140); // tamaño cómodo para rasterizar
+                const logoPngDataUrl = await svgToPngDataUrl(logoUrl, 140, 140);
                 // Posicionar centrado arriba
                 const logoW = 40,
                     logoH = 40;
@@ -578,12 +579,22 @@ $email   = $user['email'] ?? 'Sin email';
                     align: 'center'
                 });
 
+                // Texto de la gift card (desde DB) — debajo del título
+                if (row.texto) {
+                    doc.setFont('helvetica', 'italic');
+                    doc.setFontSize(13);
+                    const cuerpo = doc.splitTextToSize(String(row.texto), 170);
+                    doc.text(cuerpo, 105, 118, {
+                        align: 'center'
+                    });
+                }
+
                 // Línea informativa: "Podes canjearlo hasta ... usando el siguiente código ..."
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(14);
                 const canje = `Podes canjearlo hasta ${row.fecha_vencimiento} usando el siguiente código ${row.codigo}`;
                 const wrapped = doc.splitTextToSize(canje, 170);
-                doc.text(wrapped, 105, 135, {
+                doc.text(wrapped, 105, 145, {
                     align: 'center'
                 });
 
@@ -596,6 +607,7 @@ $email   = $user['email'] ?? 'Sin email';
 
                 doc.save(`giftcard_${row.codigo}.pdf`);
             }
+
 
             // Utilidad: convertir un SVG (ruta) a DataURL PNG para jsPDF
             async function svgToPngDataUrl(url, targetW = 120, targetH = 120) {
