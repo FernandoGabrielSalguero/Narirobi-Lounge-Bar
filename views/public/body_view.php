@@ -298,7 +298,7 @@ declare(strict_types=1); ?>
     .aclaracion {
         display: inline-block;
         background: var(--color-acento);
-        color: #fff;
+        color: #000000ff;
         padding: 4px 8px;
         border-radius: 8px;
         font-size: 12px;
@@ -325,6 +325,7 @@ declare(strict_types=1); ?>
 
     @media (max-width: 480px) {
         .item {
+            background-color: #0000004f;
             padding: 10px;
         }
     }
