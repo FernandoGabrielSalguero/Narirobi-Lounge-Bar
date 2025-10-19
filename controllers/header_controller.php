@@ -303,14 +303,14 @@ JS;
     <form id="reservaForm" class="res-grid" autocomplete="off" novalidate>
       <!-- Fila 1: Nombre / Teléfono -->
       <div class="input-group">
-        <label for="res_nombre">Nombre</label>
+        <label for="res_nombre" class="color_label">Nombre</label>
         <div class="input-icon input-icon-name">
           <input type="text" id="res_nombre" name="nombre" placeholder="Tu nombre" required />
         </div>
       </div>
 
       <div class="input-group">
-        <label for="res_telefono">Teléfono</label>
+        <label for="res_telefono" class="color_label">Teléfono</label>
         <div class="input-icon input-icon-phone">
           <input type="tel" id="res_telefono" name="telefono" placeholder="2616686062" required />
         </div>
@@ -318,14 +318,14 @@ JS;
 
       <!-- Fila 2: Fecha / Hora -->
       <div class="input-group">
-        <label for="res_fecha">Fecha</label>
+        <label for="res_fecha" class="color_label">Fecha</label>
         <div class="input-icon input-icon-calendar">
           <input type="date" id="res_fecha" name="fecha" required />
         </div>
       </div>
 
       <div class="input-group">
-        <label for="res_hora">Hora</label>
+        <label for="res_hora" class="color_label">Hora</label>
         <div class="input-icon input-icon-time">
           <input type="time" id="res_hora" name="hora" required />
         </div>
@@ -333,23 +333,23 @@ JS;
 
       <!-- Fila 3: Personas / Notas -->
       <div class="input-group">
-        <label for="res_personas">Personas</label>
+        <label for="res_personas" class="color_label">Personas</label>
         <div class="input-icon input-icon-users">
           <input type="number" id="res_personas" name="personas" min="1" step="1" value="2" required />
         </div>
       </div>
 
       <div class="input-group">
-        <label for="res_notas">Notas</label>
-        <div class="input-icon input-icon-edit">
+        <label for="res_notas" class="color_label">Notas</label>
+        <div class="input-icon input-icon-edit ">
           <textarea id="res_notas" name="notas" rows="3" placeholder="Preferencias, alergias, ocasión, etc."></textarea>
         </div>
       </div>
 
       <!-- Botones -->
       <div class="form-buttons res-buttons">
-        <button type="submit" class="btn btn-aceptar">Confirmar</button>
-        <button id="btnCancelarReserva" class="btn btn-cancelar">Cancelar</button>
+        <button type="submit" class="btn btn-aceptar border_botons ">Confirmar</button>
+        <button id="btnCancelarReserva" class="btn btn-cancelar border_botons ">Cancelar</button>
       </div>
     </form>
   </div>
@@ -371,6 +371,10 @@ JS;
 
   .color_label {
     color: #000000ff;
+  }
+
+  .border_botons{
+    border-color: #000000ff;
   }
 </style>
 HTML;
