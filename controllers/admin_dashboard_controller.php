@@ -218,6 +218,129 @@ try {
         exit;
     }
 
+    // ======== Imágenes ========
+    if ($r === 'images') {
+        if ($method === 'GET') {
+            $data = $model->listImages();
+            echo json_encode(['ok' => true, 'data' => $data], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        if ($method === 'POST') {
+            // Dos operaciones: upload (multipart) y delete (x-www-form-urlencoded o JSON)
+            $op = $_POST['op'] ?? null;
+
+            // DELETE
+            if ($op === 'delete') {
+                $id = (int)($_POST['id'] ?? 0);
+                if ($id <= 0) {
+                    echo json_encode(['ok' => false, 'error' => 'ID inválido'], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+                $row = $model->getImageById($id);
+                if (!$row) {
+                    echo json_encode(['ok' => false, 'error' => 'Imagen no encontrada'], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+                // Borrar archivo físico
+                $uploadsDir = realpath(__DIR__ . '/../uploads') ?: (__DIR__ . '/../uploads');
+                $filePath = $uploadsDir . DIRECTORY_SEPARATOR . $row['filename'];
+                if (is_file($filePath)) {
+                    @unlink($filePath);
+                }
+                // Borrar registro
+                $model->deleteImage($id);
+                echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+
+            // UPLOAD
+            if ($op === 'upload') {
+                if (empty($_FILES['imagenes'])) {
+                    echo json_encode(['ok' => false, 'error' => 'No se recibieron archivos.'], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+
+                // Validaciones
+                $maxSize = 5 * 1024 * 1024; // 5MB
+                $allowedMime = [
+                    'image/jpeg' => 'jpg',
+                    'image/png'  => 'png',
+                    'image/webp' => 'webp',
+                    'image/gif'  => 'gif',
+                ];
+
+                $uploadsDir = __DIR__ . '/../uploads';
+                if (!is_dir($uploadsDir)) {
+                    @mkdir($uploadsDir, 0755, true);
+                }
+
+                $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                $names = $_FILES['imagenes']['name'];
+                $tmpNames = $_FILES['imagenes']['tmp_name'];
+                $sizes = $_FILES['imagenes']['size'];
+                $errors = $_FILES['imagenes']['error'];
+
+                // Normalizar a array
+                $count = is_array($names) ? count($names) : 1;
+                if (!is_array($names)) {
+                    $names   = [$names];
+                    $tmpNames = [$tmpNames];
+                    $sizes   = [$sizes];
+                    $errors  = [$errors];
+                }
+
+                $saved = [];
+                for ($i = 0; $i < $count; $i++) {
+                    if ($errors[$i] !== UPLOAD_ERR_OK) {
+                        continue; // omitir archivos con error
+                    }
+                    if ($sizes[$i] > $maxSize) {
+                        continue; // omitir por tamaño
+                    }
+                    $mime = $finfo->file($tmpNames[$i]) ?: '';
+                    if (!isset($allowedMime[$mime])) {
+                        continue; // omitir no permitido
+                    }
+                    $ext = $allowedMime[$mime];
+                    $unique = bin2hex(random_bytes(8)) . '.' . $ext;
+                    $dest = $uploadsDir . DIRECTORY_SEPARATOR . $unique;
+
+                    if (!move_uploaded_file($tmpNames[$i], $dest)) {
+                        continue; // fallo de move
+                    }
+
+                    // URL pública relativa
+                    $url = '/uploads/' . $unique;
+
+                    // Persistir
+                    $id = $model->createImage($unique, $url);
+
+                    $saved[] = [
+                        'id' => $id,
+                        'filename' => $unique,
+                        'url' => $url,
+                    ];
+                }
+
+                if (!count($saved)) {
+                    echo json_encode(['ok' => false, 'error' => 'Ningún archivo superó las validaciones.'], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+
+                echo json_encode(['ok' => true, 'data' => ['uploads' => $saved]], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+
+            echo json_encode(['ok' => false, 'error' => 'Operación no soportada'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        http_response_code(405);
+        echo json_encode(['ok' => false, 'error' => 'Método no permitido'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     // Si llega aquí, recurso desconocido
     http_response_code(404);
     echo json_encode(['ok' => false, 'error' => 'Recurso no encontrado'], JSON_UNESCAPED_UNICODE);

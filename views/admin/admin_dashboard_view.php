@@ -208,9 +208,33 @@ $email = $user['email'] ?? 'Sin email';
                             </table>
                         </div>
                     </div>
+
+                    <!-- Imágenes: subir / listar / eliminar -->
+                    <div class="card" id="card-media">
+                        <h3>Imágenes</h3>
+                        <p>Subí imágenes a <code>/uploads</code>. Formatos permitidos: JPG, PNG, WEBP, GIF. Máx 5MB c/u.</p>
+
+                        <form id="form-upload-imagenes" autocomplete="off" enctype="multipart/form-data">
+                            <div class="form-grid grid-3">
+                                <div class="input-group" style="grid-column: 1 / -1;">
+                                    <label for="imagenes_input">Seleccioná una o más imágenes</label>
+                                    <div class="input-icon input-icon-name">
+                                        <input type="file" id="imagenes_input" name="imagenes[]" accept="image/*" multiple required />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-buttons">
+                                <button type="submit" class="btn btn-aceptar">Subir</button>
+                                <button type="button" class="btn btn-cancelar" id="btn-refrescar-media">Refrescar</button>
+                            </div>
+                        </form>
+
+                        <div class="card tabla-card" style="margin-top:1rem;">
+                            <h2>Galería</h2>
+                            <div id="galeria_media" class="galeria-grid" aria-live="polite"></div>
+                        </div>
+                    </div>
                 </div>
-
-
             </section>
 
             <style>
@@ -338,6 +362,46 @@ $email = $user['email'] ?? 'Sin email';
                     display: flex;
                     gap: .5rem;
                     flex-wrap: wrap;
+                }
+
+                /* === Media / Galería === */
+                .galeria-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                    gap: 12px;
+                }
+
+                .galeria-item {
+                    position: relative;
+                    border: 1px solid rgba(0, 0, 0, .08);
+                    border-radius: 12px;
+                    overflow: hidden;
+                    background: #fff;
+                    box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
+                }
+
+                .galeria-thumb {
+                    width: 100%;
+                    aspect-ratio: 4/3;
+                    object-fit: cover;
+                    display: block;
+                    background: #f3f4f6;
+                }
+
+                .galeria-footer {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: .5rem .6rem;
+                    gap: .5rem;
+                }
+
+                .file-name {
+                    font-size: .85rem;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    max-width: 70%;
                 }
             </style>
 
@@ -972,6 +1036,123 @@ $email = $user['email'] ?? 'Sin email';
     </div>
 
     <script src="/views/partial/spinner-global.js" defer></script>
+
+    <script type="module">
+        (() => {
+            const $ = (s, ctx = document) => ctx.querySelector(s);
+            const $$ = (s, ctx = document) => Array.from(ctx.querySelectorAll(s));
+            const API = '../../controllers/admin_dashboard_controller.php?r=images';
+
+            const galeria = $('#galeria_media');
+            const form = $('#form-upload-imagenes');
+            const input = $('#imagenes_input');
+            const btnRefrescar = $('#btn-refrescar-media');
+
+            const fmtBytes = (n) => {
+                if (n < 1024) return `${n} B`;
+                if (n < 1024 * 1024) return `${(n/1024).toFixed(1)} KB`;
+                return `${(n/1024/1024).toFixed(1)} MB`;
+            };
+
+            async function listar() {
+                try {
+                    const res = await fetch(API, {
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+                    const json = await res.json();
+                    if (!json.ok) throw new Error(json.error || 'No se pudieron listar imágenes.');
+                    render(json.data);
+                } catch (e) {
+                    showAlert('error', e.message);
+                }
+            }
+
+            function render(items) {
+                galeria.innerHTML = '';
+                if (!items || !items.length) {
+                    galeria.innerHTML = `<div class="chip">No hay imágenes aún.</div>`;
+                    return;
+                }
+                items.forEach(it => {
+                    const card = document.createElement('div');
+                    card.className = 'galeria-item';
+                    card.innerHTML = `
+                                <a href="${it.url}" target="_blank" rel="noopener">
+                                    <img src="${it.url}" alt="Imagen ${it.id}" class="galeria-thumb" loading="lazy">
+                                </a>
+                                <div class="galeria-footer">
+                                    <span class="file-name" title="${it.filename}">${it.filename}</span>
+                                    <div class="acciones-grid">
+                                        <button class="btn btn-cancelar btn-eliminar-img" data-id="${it.id}">Eliminar</button>
+                                    </div>
+                                </div>
+                            `;
+                    galeria.appendChild(card);
+                });
+            }
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!input.files.length) {
+                    showAlert('error', 'Seleccioná al menos una imagen.');
+                    return;
+                }
+                const fd = new FormData();
+                fd.append('op', 'upload');
+                for (const f of input.files) {
+                    fd.append('imagenes[]', f);
+                }
+                try {
+                    const res = await fetch(API, {
+                        method: 'POST',
+                        body: fd
+                    });
+                    const json = await res.json();
+                    if (!json.ok) throw new Error(json.error || 'No se pudo subir la/s imagen/es.');
+                    showAlert('success', `Subida correcta: ${json.data.uploads.length} archivo(s).`);
+                    input.value = '';
+                    await listar();
+                } catch (err) {
+                    showAlert('error', err.message);
+                }
+            });
+
+            btnRefrescar.addEventListener('click', listar);
+
+            document.addEventListener('click', async (e) => {
+                const btnDel = e.target.closest('.btn-eliminar-img');
+                if (btnDel) {
+                    const id = parseInt(btnDel.dataset.id, 10);
+                    if (!id) return;
+                    if (!confirm('¿Eliminar esta imagen? Esta acción no se puede deshacer.')) return;
+                    try {
+                        const res = await fetch(API, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                                'Accept': 'application/json'
+                            },
+                            body: new URLSearchParams({
+                                op: 'delete',
+                                id: String(id)
+                            })
+                        });
+                        const json = await res.json();
+                        if (!json.ok) throw new Error(json.error || 'No se pudo eliminar.');
+                        showAlert('info', 'Imagen eliminada.');
+                        await listar();
+                    } catch (err) {
+                        showAlert('error', err.message);
+                    }
+                }
+            });
+
+            // Inicio
+            listar();
+        })();
+    </script>
 
 </body>
 

@@ -219,4 +219,54 @@ class AdminDashboardModel
         $st = $this->pdo->prepare($sql);
         return $st->execute([':c' => $categoryId, ':s' => $subcategoryId]);
     }
+
+    /* =======================
+     *        IMÁGENES
+     * ======================= */
+
+    /**
+     * Retorna todas las imágenes (id, filename, url, created_at) ordenadas por id DESC.
+     * @return array<int, array{id:int,filename:string,url:string,created_at:string}>
+     */
+    public function listImages(): array
+    {
+        $sql = "SELECT id, filename, url, created_at FROM imagenes ORDER BY id DESC";
+        $st = $this->pdo->query($sql);
+        return $st->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Inserta una imagen y retorna el id insertado.
+     */
+    public function createImage(string $filename, string $url): int
+    {
+        $sql = "INSERT INTO imagenes (filename, url, created_at) VALUES (:filename, :url, NOW())";
+        $st = $this->pdo->prepare($sql);
+        $st->execute([
+            ':filename' => $filename,
+            ':url' => $url,
+        ]);
+        return (int)$this->pdo->lastInsertId();
+    }
+
+    /**
+     * Obtiene una imagen por id.
+     * @return array{id:int,filename:string,url:string,created_at:string}|null
+     */
+    public function getImageById(int $id): ?array
+    {
+        $st = $this->pdo->prepare("SELECT id, filename, url, created_at FROM imagenes WHERE id = :id");
+        $st->execute([':id' => $id]);
+        $row = $st->fetch(\PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    /**
+     * Elimina registro por id.
+     */
+    public function deleteImage(int $id): bool
+    {
+        $st = $this->pdo->prepare("DELETE FROM imagenes WHERE id = :id");
+        return $st->execute([':id' => $id]);
+    }
 }
