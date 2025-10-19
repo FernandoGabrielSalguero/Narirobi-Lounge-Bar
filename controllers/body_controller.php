@@ -22,7 +22,7 @@ try {
         case 'view_reserva':
             header('Content-Type: text/html; charset=utf-8');
             echo <<<'HTML'
-<div id="modalReserva" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="reservaTitulo">
+<div id="modalReserva" class="modal hidden" style="color=" role="dialog" aria-modal="true" aria-labelledby="reservaTitulo">
   <div class="modal-content">
     <div class="reserva-header">
       <h3 id="reservaTitulo">Reservas</h3>
@@ -89,8 +89,15 @@ try {
   #modalReserva .modal-content{
     max-width: 720px; width: 92vw;
   }
-  .reserva-header h3{ margin:0 0 .25rem 0; }
-  .reserva-header .reserva-subtitle{ margin:0 0 1rem 0; opacity:.8; font-size:.95rem; }
+  .reserva-header h3{
+    margin:0 0 .25rem 0;
+    color: #000000ff;
+}
+  .reserva-header .reserva-subtitle{
+    margin:0 0 1rem 0;
+    opacity:.8; font-size:.95rem;
+    color: #000000ff;
+}
 
   /* Grid responsive: mobile 1 columna, desktop 2 columnas */
   .res-grid{
