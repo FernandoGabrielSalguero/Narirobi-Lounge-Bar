@@ -210,31 +210,42 @@ $email = $user['email'] ?? 'Sin email';
                     </div>
                 </div>
 
-                                    <!-- Imágenes: subir / listar / eliminar -->
-                    <div class="card" id="card-media">
-                        <h3>Imágenes</h3>
-                        <p>Subí imágenes a <code>/uploads</code>. Formatos permitidos: JPG, PNG, WEBP, GIF. Máx 5MB c/u.</p>
+                <!-- Imágenes: subir / listar / eliminar -->
+                <div class="card" id="card-media">
+                    <h3>Imágenes</h3>
+                    <p>Subí imágenes a <code>/uploads</code>. Formatos permitidos: JPG, PNG, WEBP, GIF. Máx 5MB c/u.</p>
 
-                        <form id="form-upload-imagenes" autocomplete="off" enctype="multipart/form-data">
-                            <div class="form-grid grid-3">
-                                <div class="input-group" style="grid-column: 1 / -1;">
-                                    <label for="imagenes_input">Seleccioná una o más imágenes</label>
-                                    <div class="input-icon input-icon-name">
-                                        <input type="file" id="imagenes_input" name="imagenes[]" accept="image/*" multiple required />
-                                    </div>
+                    <form id="form-upload-imagenes" autocomplete="off" enctype="multipart/form-data">
+                        <div class="form-grid grid-3">
+                            <div class="input-group" style="grid-column: 1 / -1;">
+                                <label for="imagenes_input">Seleccioná una o más imágenes</label>
+
+                                <!-- Campo de subida real: abre el selector de archivos de la PC -->
+                                <input type="file" id="imagenes_input" name="imagenes[]" accept="image/*" multiple required style="display:none;" />
+
+                                <!-- Botón accesible que dispara el selector nativo -->
+                                <div class="input-icon input-icon-name">
+                                    <button type="button" id="btn-abrir-file" class="btn btn-info" aria-controls="imagenes_input">
+                                        <span class="material-icons">upload_file</span>
+                                        <span style="margin-left:.35rem;">Elegir archivo(s)</span>
+                                    </button>
                                 </div>
-                            </div>
-                            <div class="form-buttons">
-                                <button type="submit" class="btn btn-aceptar">Subir</button>
-                                <button type="button" class="btn btn-cancelar" id="btn-refrescar-media">Refrescar</button>
-                            </div>
-                        </form>
 
-                        <div class="card tabla-card" style="margin-top:1rem;">
-                            <h2>Galería</h2>
-                            <div id="galeria_media" class="galeria-grid" aria-live="polite"></div>
+                                <!-- Resumen de selección -->
+                                <div id="file-info" class="file-info" aria-live="polite"></div>
+                            </div>
                         </div>
+                        <div class="form-buttons">
+                            <button type="submit" class="btn btn-aceptar">Subir</button>
+                            <button type="button" class="btn btn-cancelar" id="btn-refrescar-media">Refrescar</button>
+                        </div>
+                    </form>
+
+                    <div class="card tabla-card" style="margin-top:1rem;">
+                        <h2>Galería</h2>
+                        <div id="galeria_media" class="galeria-grid" aria-live="polite"></div>
                     </div>
+                </div>
             </section>
 
             <style>
@@ -402,6 +413,22 @@ $email = $user['email'] ?? 'Sin email';
                     text-overflow: ellipsis;
                     white-space: nowrap;
                     max-width: 70%;
+                }
+
+                /* File info */
+                .file-info {
+                    margin-top: .5rem;
+                    font-size: .9rem;
+                    color: #334155;
+                }
+
+                .file-info .file-pill {
+                    display: inline-block;
+                    margin: .15rem .25rem .15rem 0;
+                    padding: .15rem .5rem;
+                    border: 1px solid rgba(0, 0, 0, .08);
+                    border-radius: 999px;
+                    background: #f8fafc;
                 }
             </style>
 
@@ -1047,12 +1074,27 @@ $email = $user['email'] ?? 'Sin email';
             const form = $('#form-upload-imagenes');
             const input = $('#imagenes_input');
             const btnRefrescar = $('#btn-refrescar-media');
+            const btnAbrirFile = $('#btn-abrir-file');
+            const fileInfo = $('#file-info');
+
+            btnAbrirFile.addEventListener('click', () => input.click());
 
             const fmtBytes = (n) => {
                 if (n < 1024) return `${n} B`;
                 if (n < 1024 * 1024) return `${(n/1024).toFixed(1)} KB`;
                 return `${(n/1024/1024).toFixed(1)} MB`;
             };
+
+            input.addEventListener('change', () => {
+                if (!input.files.length) {
+                    fileInfo.textContent = '';
+                    return;
+                }
+                const pills = Array.from(input.files).map(f =>
+                    `<span class="file-pill" title="${f.name}">${f.name} • ${fmtBytes(f.size)}</span>`
+                ).join('');
+                fileInfo.innerHTML = `${input.files.length} archivo(s) seleccionado(s): ${pills}`;
+            });
 
             async function listar() {
                 try {

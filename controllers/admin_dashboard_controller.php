@@ -256,7 +256,13 @@ try {
 
             // UPLOAD
             if ($op === 'upload') {
+                // Detección de excedente de post_max_size/upload_max_filesize cuando $_FILES llega vacío
                 if (empty($_FILES['imagenes'])) {
+                    $contentLength = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
+                    if ($contentLength > 0) {
+                        echo json_encode(['ok' => false, 'error' => 'El tamaño total excede el límite del servidor (post_max_size / upload_max_filesize).'], JSON_UNESCAPED_UNICODE);
+                        exit;
+                    }
                     echo json_encode(['ok' => false, 'error' => 'No se recibieron archivos.'], JSON_UNESCAPED_UNICODE);
                     exit;
                 }
