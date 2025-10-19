@@ -208,8 +208,9 @@ $email = $user['email'] ?? 'Sin email';
                             </table>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Imágenes: subir / listar / eliminar -->
+                                    <!-- Imágenes: subir / listar / eliminar -->
                     <div class="card" id="card-media">
                         <h3>Imágenes</h3>
                         <p>Subí imágenes a <code>/uploads</code>. Formatos permitidos: JPG, PNG, WEBP, GIF. Máx 5MB c/u.</p>
@@ -234,7 +235,6 @@ $email = $user['email'] ?? 'Sin email';
                             <div id="galeria_media" class="galeria-grid" aria-live="polite"></div>
                         </div>
                     </div>
-                </div>
             </section>
 
             <style>
