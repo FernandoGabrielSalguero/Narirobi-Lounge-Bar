@@ -256,7 +256,7 @@ declare(strict_types=1); ?>
     .item {
         border-radius: var(--radius);
         padding: 12px;
-        background: rgba(0, 0, 0, 0.02);
+        background-color: #0000004f;
     }
 
     .item-header {
