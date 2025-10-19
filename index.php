@@ -12,8 +12,8 @@
     <script defer src="https://www.fernandosalguero.com/cdn/assets/javascript/framework.js"></script>
 </head>
 <body>
-    <?php require __DIR__ . '/views/header_view.php'; ?>
-    <?php require __DIR__ . '/views/body_view.php'; ?>
+    <?php require __DIR__ . '/views/public/header_view.php'; ?>
+    <?php require __DIR__ . '/views/public/body_view.php'; ?>
     <!-- JS del header servido por el controller (corrige bugs y separa responsabilidades) -->
     <script defer src="/controllers/header_controller.php?action=script"></script>
 </body>
