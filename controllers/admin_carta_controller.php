@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 ini_set('display_errors', '1');
 error_reporting(E_ALL);
@@ -7,11 +8,13 @@ require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../models/admin_carta_model.php';
 header('Content-Type: application/json; charset=utf-8');
 
-function respondOk($data): void {
+function respondOk($data): void
+{
     echo json_encode(['ok' => true, 'data' => $data], JSON_UNESCAPED_UNICODE);
     exit;
 }
-function respondErr(string $msg, int $code = 400): void {
+function respondErr(string $msg, int $code = 400): void
+{
     http_response_code($code);
     echo json_encode(['ok' => false, 'error' => $msg], JSON_UNESCAPED_UNICODE);
     exit;
@@ -33,7 +36,7 @@ try {
                 $cat = (int)($_GET['categoria'] ?? 0);
                 respondOk($model->listSubcategoriasByCategoria($cat));
 
-            // Nota: nextOrden ya no es necesario en UI, se mantiene omitido aquí.
+                // Nota: nextOrden ya no es necesario en UI, se mantiene omitido aquí.
 
             case 'listProductos':
                 respondOk($model->listProductos());
@@ -58,7 +61,13 @@ try {
                 'detalle' => trim((string)($json['detalle'] ?? '')),
                 'categoria' => (int)($json['categoria'] ?? 0),
                 'subcategoria' => (int)($json['subcategoria'] ?? 0),
+                'icono' => trim((string)($json['icono'] ?? '')),
             ];
+
+            $allowedIconos = ['', 'sin_tacc', 'nuevo', 'promo'];
+            if (!in_array($p['icono'], $allowedIconos, true)) {
+                respondErr('Icono inválido. Valores permitidos: (vacío), sin_tacc, nuevo, promo');
+            }
 
             if ($p['precio'] <= 0 || $p['categoria'] <= 0 || $p['subcategoria'] <= 0 || $p['nombre'] === '') {
                 respondErr('Datos inválidos: nombre, precio (>0), categoría y subcategoría son obligatorios');
@@ -71,7 +80,10 @@ try {
             $subs = $model->listSubcategoriasByCategoria($p['categoria']);
             $okPair = false;
             foreach ($subs as $s) {
-                if ((int)$s['id'] === $p['subcategoria']) { $okPair = true; break; }
+                if ((int)$s['id'] === $p['subcategoria']) {
+                    $okPair = true;
+                    break;
+                }
             }
             if (!$okPair) {
                 respondErr('La subcategoría no pertenece a la categoría seleccionada');
@@ -94,7 +106,14 @@ try {
                 'detalle' => trim((string)($json['detalle'] ?? '')),
                 'categoria' => (int)($json['categoria'] ?? 0),
                 'subcategoria' => (int)($json['subcategoria'] ?? 0),
+                'icono' => trim((string)($json['icono'] ?? '')),
             ];
+
+            $allowedIconos = ['', 'sin_tacc', 'nuevo', 'promo'];
+            if (!in_array($p['icono'], $allowedIconos, true)) {
+                respondErr('Icono inválido. Valores permitidos: (vacío), sin_tacc, nuevo, promo');
+            }
+
             if ($p['precio'] <= 0 || $p['categoria'] <= 0 || $p['subcategoria'] <= 0 || $p['nombre'] === '') {
                 respondErr('Datos inválidos');
             }
@@ -105,7 +124,10 @@ try {
             $subs = $model->listSubcategoriasByCategoria($p['categoria']);
             $okPair = false;
             foreach ($subs as $s) {
-                if ((int)$s['id'] === $p['subcategoria']) { $okPair = true; break; }
+                if ((int)$s['id'] === $p['subcategoria']) {
+                    $okPair = true;
+                    break;
+                }
             }
             if (!$okPair) {
                 respondErr('La subcategoría no pertenece a la categoría seleccionada');

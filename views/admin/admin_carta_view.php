@@ -187,8 +187,23 @@ $email = $user['email'] ?? 'Sin email';
                                 </div>
                             </div>
 
+                            <!-- NUEVO: Selector de Icono -->
+                            <div class="input-group">
+                                <label for="icono">Icono</label>
+                                <div class="input-icon input-icon-name">
+                                    <span class="material-icons mi" aria-hidden="true">style</span>
+                                    <select id="icono" name="icono">
+                                        <option value="">Sin icono</option>
+                                        <option value="sin_tacc">sin tacc</option>
+                                        <option value="nuevo">nuevo</option>
+                                        <option value="promo">promo</option>
+                                    </select>
+                                </div>
+                            </div>
+
                             <div class="input-group">
                                 <label for="aclaracion_1">Aclaración 1</label>
+
                                 <div class="input-icon input-icon-name">
                                     <span class="material-icons mi" aria-hidden="true">info</span>
                                     <input type="text" id="aclaracion_1" name="aclaracion_1" placeholder="Opcional" />
@@ -297,8 +312,24 @@ $email = $user['email'] ?? 'Sin email';
                             <select id="edit_subcategoria" name="subcategoria" required aria-required="true" disabled></select>
                         </div>
                     </div>
+
+                    <!-- NUEVO: Selector de Icono (edición) -->
+                    <div class="input-group">
+                        <label for="edit_icono">Icono</label>
+                        <div class="input-icon input-icon-name">
+                            <span class="material-icons mi" aria-hidden="true">style</span>
+                            <select id="edit_icono" name="icono">
+                                <option value="">Sin icono</option>
+                                <option value="sin_tacc">sin tacc</option>
+                                <option value="nuevo">nuevo</option>
+                                <option value="promo">promo</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="input-group">
                         <label for="edit_aclaracion_1">Aclaración 1</label>
+
                         <div class="input-icon input-icon-name">
                             <span class="material-icons mi" aria-hidden="true">info</span>
                             <input type="text" id="edit_aclaracion_1" name="aclaracion_1" />
@@ -541,16 +572,17 @@ $email = $user['email'] ?? 'Sin email';
 
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
-                const payload = {
-                    nombre: $('#nombre').value.trim(),
-                    precio: Number($('#precio').value),
-                    categoria: Number($('#categoria').value || 0),
-                    subcategoria: Number($('#subcategoria').value || 0),
-                    aclaracion_1: $('#aclaracion_1').value.trim(),
-                    aclaracion_2: $('#aclaracion_2').value.trim(),
-                    aclaracion_3: $('#aclaracion_3').value.trim(),
-                    detalle: $('#detalle').value.trim()
-                };
+const payload = {
+    nombre: $('#nombre').value.trim(),
+    precio: Number($('#precio').value),
+    categoria: Number($('#categoria').value || 0),
+    subcategoria: Number($('#subcategoria').value || 0),
+    icono: ($('#icono').value || '').trim(),
+    aclaracion_1: $('#aclaracion_1').value.trim(),
+    aclaracion_2: $('#aclaracion_2').value.trim(),
+    aclaracion_3: $('#aclaracion_3').value.trim(),
+    detalle: $('#detalle').value.trim()
+};
                 if (!payload.nombre || !payload.precio || !payload.categoria || !payload.subcategoria) {
                     showAlert('info', 'Completá nombre, precio, categoría y subcategoría.');
                     return;
@@ -560,14 +592,19 @@ $email = $user['email'] ?? 'Sin email';
                     return;
                 }
                 postJSON('createProducto', payload).then(res => {
-                    if (res.ok) {
-                        showAlert('success', 'Producto guardado');
-                        form.reset();
-                        selSub.disabled = true;
-                        selSub.innerHTML = '<option value="">Seleccioná una categoría primero</option>';
-                        detalleCount.textContent = '0/255';
-                        cargarProductos();
-                    } else {
+if (res.ok) {
+    showAlert('success', 'Producto guardado');
+    form.reset();
+    // reset dependientes
+    selSub.disabled = true;
+    selSub.innerHTML = '<option value="">Seleccioná una categoría primero</option>';
+    // reset icono explícito (por si el navegador no resetea)
+    const selIcono = document.getElementById('icono');
+    if (selIcono) selIcono.value = '';
+    detalleCount.textContent = '0/255';
+    cargarProductos();
+} else {
+
                         showAlert('error', res.error || 'No se pudo guardar');
                     }
                 }).catch(() => showAlert('error', 'Error de red al guardar'));
@@ -644,9 +681,12 @@ $email = $user['email'] ?? 'Sin email';
                 $('#edit_nombre').value = p.nombre;
                 $('#edit_precio').value = p.precio;
                 $('#edit_aclaracion_1').value = p.aclaracion_1 || '';
-                $('#edit_aclaracion_2').value = p.aclaracion_2 || '';
-                $('#edit_aclaracion_3').value = p.aclaracion_3 || '';
-                $('#edit_detalle').value = p.detalle || '';
+$('#edit_aclaracion_2').value = p.aclaracion_2 || '';
+$('#edit_aclaracion_3').value = p.aclaracion_3 || '';
+$('#edit_detalle').value = p.detalle || '';
+const selIconoEdit = document.getElementById('edit_icono');
+if (selIconoEdit) selIconoEdit.value = (p.icono || '');
+
                 $('#edit_detalle').setAttribute('maxlength', '255');
                 enforceMaxLength($('#edit_detalle'), 255, $('#editDetalleCount'));
                 $('#editDetalleCount').textContent = `${($('#edit_detalle').value || '').length}/255`;
@@ -704,17 +744,18 @@ $email = $user['email'] ?? 'Sin email';
 
             $('#formEdit').addEventListener('submit', (e) => {
                 e.preventDefault();
-                const payload = {
-                    id: Number($('#edit_id').value),
-                    nombre: $('#edit_nombre').value.trim(),
-                    precio: Number($('#edit_precio').value),
-                    categoria: Number($('#edit_categoria').value || 0),
-                    subcategoria: Number($('#edit_subcategoria').value || 0),
-                    aclaracion_1: $('#edit_aclaracion_1').value.trim(),
-                    aclaracion_2: $('#edit_aclaracion_2').value.trim(),
-                    aclaracion_3: $('#edit_aclaracion_3').value.trim(),
-                    detalle: $('#edit_detalle').value.trim()
-                };
+const payload = {
+    id: Number($('#edit_id').value),
+    nombre: $('#edit_nombre').value.trim(),
+    precio: Number($('#edit_precio').value),
+    categoria: Number($('#edit_categoria').value || 0),
+    subcategoria: Number($('#edit_subcategoria').value || 0),
+    icono: ($('#edit_icono').value || '').trim(),
+    aclaracion_1: $('#edit_aclaracion_1').value.trim(),
+    aclaracion_2: $('#edit_aclaracion_2').value.trim(),
+    aclaracion_3: $('#edit_aclaracion_3').value.trim(),
+    detalle: $('#edit_detalle').value.trim()
+};
                 if (!payload.id || !payload.nombre || !payload.precio || !payload.categoria || !payload.subcategoria) {
                     showAlert('info', 'Completá nombre, precio, categoría y subcategoría.');
                     return;
