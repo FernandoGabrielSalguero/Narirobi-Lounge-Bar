@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 ini_set('display_errors', '1'); // puedes desactivar luego
@@ -14,17 +15,22 @@ try {
     switch ($action) {
         case 'ping':
             header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['ok'=>true,'data'=>['pong'=>true]], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['ok' => true, 'data' => ['pong' => true]], JSON_UNESCAPED_UNICODE);
             exit;
 
-        // --- Vista del modal de reservas ---
+            // --- Vista del modal de reservas ---
         case 'view_reserva':
             header('Content-Type: text/html; charset=utf-8');
             echo <<<'HTML'
 <div id="modalReserva" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="reservaTitulo">
   <div class="modal-content">
-    <h3 id="reservaTitulo">Reservas</h3>
-    <form id="reservaForm" class="form-grid grid-1" autocomplete="off" novalidate>
+    <div class="reserva-header">
+      <h3 id="reservaTitulo">Reservas</h3>
+      <p class="reserva-subtitle">Completá tus datos y confirmá tu lugar.</p>
+    </div>
+
+    <form id="reservaForm" class="res-grid" autocomplete="off" novalidate>
+      <!-- Fila 1: Nombre / Teléfono -->
       <div class="input-group">
         <label for="res_nombre">Nombre</label>
         <div class="input-icon input-icon-name">
@@ -39,22 +45,22 @@ try {
         </div>
       </div>
 
-      <div class="form-grid grid-2">
-        <div class="input-group">
-          <label for="res_fecha">Fecha</label>
-          <div class="input-icon input-icon-calendar">
-            <input type="date" id="res_fecha" name="fecha" required />
-          </div>
-        </div>
-
-        <div class="input-group">
-          <label for="res_hora">Hora</label>
-          <div class="input-icon input-icon-time">
-            <input type="time" id="res_hora" name="hora" required />
-          </div>
+      <!-- Fila 2: Fecha / Hora -->
+      <div class="input-group">
+        <label for="res_fecha">Fecha</label>
+        <div class="input-icon input-icon-calendar">
+          <input type="date" id="res_fecha" name="fecha" required />
         </div>
       </div>
 
+      <div class="input-group">
+        <label for="res_hora">Hora</label>
+        <div class="input-icon input-icon-time">
+          <input type="time" id="res_hora" name="hora" required />
+        </div>
+      </div>
+
+      <!-- Fila 3: Personas / Notas -->
       <div class="input-group">
         <label for="res_personas">Personas</label>
         <div class="input-icon input-icon-users">
@@ -69,24 +75,46 @@ try {
         </div>
       </div>
 
-      <div class="form-buttons">
+      <!-- Botones -->
+      <div class="form-buttons res-buttons">
         <button type="submit" class="btn btn-aceptar">Confirmar</button>
         <button id="btnCancelarReserva" class="btn btn-cancelar">Cancelar</button>
       </div>
     </form>
   </div>
 </div>
+
 <style>
-  /* Responsive sin layout shift, usa estilos del framework y ajusta minimos */
-  #modalReserva .modal-content{ max-width: 640px; width: 92vw; }
+  /* Contenedor del modal */
+  #modalReserva .modal-content{
+    max-width: 720px; width: 92vw;
+  }
+  .reserva-header h3{ margin:0 0 .25rem 0; }
+  .reserva-header .reserva-subtitle{ margin:0 0 1rem 0; opacity:.8; font-size:.95rem; }
+
+  /* Grid responsive: mobile 1 columna, desktop 2 columnas */
+  .res-grid{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem 1rem;
+  }
+  /* Botonera separada del grid para mantener alineación */
+  .res-buttons{ margin-top: .5rem; display:flex; gap: .75rem; }
+
   @media (min-width: 768px){
-    #modalReserva .modal-content{ width: 560px; }
+    .res-grid{
+      grid-template-columns: 1fr 1fr; /* 2 campos por fila */
+      align-items: start;
+    }
+    /* La botonera ocupa toda la fila inferior */
+    .res-buttons{ grid-column: 1 / -1; }
   }
 </style>
 HTML;
             exit;
 
-        // --- Alta de reserva ---
+
+            // --- Alta de reserva ---
         case 'crear_reserva':
             header('Content-Type: application/json; charset=utf-8');
 
@@ -104,7 +132,7 @@ HTML;
 
             if ($nombre === '' || $telefono === '' || $fecha === '' || $hora === '' || $personas < 1) {
                 http_response_code(422);
-                echo json_encode(['ok'=>false,'error'=>'Datos incompletos.'], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['ok' => false, 'error' => 'Datos incompletos.'], JSON_UNESCAPED_UNICODE);
                 exit;
             }
 
@@ -112,25 +140,25 @@ HTML;
             $pdo = $pdo ?? null; // asumimos $pdo del config.php
             if (!$pdo instanceof \PDO) {
                 http_response_code(500);
-                echo json_encode(['ok'=>false,'error'=>'Conexión de base de datos no disponible.'], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['ok' => false, 'error' => 'Conexión de base de datos no disponible.'], JSON_UNESCAPED_UNICODE);
                 exit;
             }
 
             $model = new BodyModel($pdo);
             $id = $model->crearReserva($nombre, $telefono, $fecha, $hora, $personas, $notas);
 
-            echo json_encode(['ok'=>true,'data'=>['id'=>$id]], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['ok' => true, 'data' => ['id' => $id]], JSON_UNESCAPED_UNICODE);
             exit;
 
         default:
             http_response_code(400);
             header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['ok'=>false,'error'=>'Acción no soportada'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['ok' => false, 'error' => 'Acción no soportada'], JSON_UNESCAPED_UNICODE);
             exit;
     }
 } catch (Throwable $e) {
     http_response_code(500);
     header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['ok'=>false,'error'=>'Error interno: '.$e->getMessage()], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['ok' => false, 'error' => 'Error interno: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
     exit;
 }
