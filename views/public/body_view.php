@@ -199,9 +199,9 @@ declare(strict_types=1); ?>
     }
 
     .sidemenu-logo {
-        width: 56px;
+        width: 150px;
         /* <-- ajustar tamaño aquí */
-        height: 56px;
+        height: 150px;
         /* <-- ajustar tamaño aquí */
         display: inline-block;
         filter: invert(1) brightness(100%);
