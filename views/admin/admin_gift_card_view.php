@@ -148,8 +148,11 @@ $email   = $user['email'] ?? 'Sin email';
                     <li onclick="location.href='admin_dashboard_view.php'">
                         <span class="material-icons" style="color:#5b21b6;">home</span><span class="link-text">Inicio</span>
                     </li>
-                    <li onclick="location.href='admin_carta_view.php'">
+                    <li onclick="location.href='admin_carta_view.php'" aria-current="page">
                         <span class="material-icons" style="color:#5b21b6;">restaurant_menu</span><span class="link-text">Carta</span>
+                    </li>
+                    <li onclick="location.href='admin_orden_view.php'" aria-current="page">
+                        <span class="material-icons" style="color:#5b21b6;">format_list_numbered</span><span class="link-text">Orden Carta</span>
                     </li>
                     <li onclick="location.href='admin_gift_card_view.php'">
                         <span class="material-icons" style="color:#5b21b6;">card_giftcard</span><span class="link-text">Gift Card</span>

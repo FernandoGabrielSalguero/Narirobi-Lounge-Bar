@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-ini_set('display_errors', '1');
+ini_set('display_errors', '0'); // En producción ocultamos errores
 error_reporting(E_ALL);
 
 require_once __DIR__ . '/../config.php';
@@ -19,94 +19,55 @@ function jsonErr(string $msg, int $code = 400): void {
     exit;
 }
 
-/** Sanitiza string simple */
-function s(?string $v): string {
-    return trim((string)$v);
-}
-
 try {
     if (!isset($pdo) || !$pdo instanceof PDO) {
         throw new RuntimeException('Conexión PDO no disponible');
     }
 
-    $model = new AdminReservasModel($pdo);
+    $model = new AdminOrdenModel($pdo);
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
     if ($method === 'GET') {
-        // GET por id (detalles) o listado
-        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-        if ($id > 0) {
-            $row = $model->obtener($id);
-            if (!$row) jsonErr('Reserva no encontrada', 404);
-            jsonOk($row);
-        } else {
-            $rows = $model->listar();
-            jsonOk($rows);
-        }
+        // Devuelve estructura ordenable completa (categorías, subcategorías, productos + mapas)
+        $data = $model->obtenerEstructuraOrden();
+        jsonOk($data);
     }
 
     if ($method === 'POST') {
-        $override = s($_POST['_method'] ?? '');
-        if ($override === 'delete') {
-            $id = (int)($_POST['id'] ?? 0);
-            if ($id <= 0) jsonErr('ID inválido');
-            $ok = $model->eliminar($id);
-            if (!$ok) jsonErr('No se pudo eliminar');
-            jsonOk(['id' => $id]);
-        } elseif ($override === 'put') {
-            // Update
-            $id = (int)($_POST['id'] ?? 0);
-            if ($id <= 0) jsonErr('ID inválido');
-
-            $data = [
-                'nombre'   => s($_POST['nombre'] ?? ''),
-                'telefono' => s($_POST['telefono'] ?? ''),
-                'fecha'    => s($_POST['fecha'] ?? ''),
-                'hora'     => s($_POST['hora'] ?? ''),
-                'personas' => (int)($_POST['personas'] ?? 0),
-                'estado'   => s($_POST['estado'] ?? 'pendiente'),
-                'notas'    => s($_POST['notas'] ?? ''),
-            ];
-
-            if ($data['nombre'] === '' || $data['telefono'] === '' || $data['fecha'] === '' || $data['hora'] === '' || $data['personas'] < 1) {
-                jsonErr('Campos obligatorios faltantes');
-            }
-            if (!in_array($data['estado'], ['pendiente','confirmada','finalizada','cancelada'], true)) {
-                jsonErr('Estado inválido');
-            }
-
-            $ok = $model->actualizar($id, $data);
-            if (!$ok) jsonErr('No se pudo actualizar');
-            $row = $model->obtener($id);
-            jsonOk($row);
-        } else {
-            // Create
-            $data = [
-                'nombre'   => s($_POST['nombre'] ?? ''),
-                'telefono' => s($_POST['telefono'] ?? ''),
-                'fecha'    => s($_POST['fecha'] ?? ''),
-                'hora'     => s($_POST['hora'] ?? ''),
-                'personas' => (int)($_POST['personas'] ?? 0),
-                'estado'   => s($_POST['estado'] ?? 'pendiente'),
-                'notas'    => s($_POST['notas'] ?? ''),
-            ];
-
-            if ($data['nombre'] === '' || $data['telefono'] === '' || $data['fecha'] === '' || $data['hora'] === '' || $data['personas'] < 1) {
-                jsonErr('Campos obligatorios faltantes');
-            }
-            if (!in_array($data['estado'], ['pendiente','confirmada','finalizada','cancelada'], true)) {
-                jsonErr('Estado inválido');
-            }
-
-            $id = $model->crear($data);
-            $row = $model->obtener($id);
-            jsonOk($row);
+        // Espera JSON: { action:"updateOrder", categorias:[{id,orden}], subcategorias:[...], productos:[...] }
+        $raw = file_get_contents('php://input') ?: '';
+        $input = json_decode($raw, true);
+        if (!is_array($input)) {
+            jsonErr('JSON inválido');
         }
+        $action = $input['action'] ?? '';
+        if ($action !== 'updateOrder') {
+            jsonErr('Acción no soportada', 405);
+        }
+
+        $cats = is_array($input['categorias'] ?? null) ? $input['categorias'] : [];
+        $subs = is_array($input['subcategorias'] ?? null) ? $input['subcategorias'] : [];
+        $prods = is_array($input['productos'] ?? null) ? $input['productos'] : [];
+
+        // Validaciones básicas
+        $validaLista = static function(array $lst): bool {
+            foreach ($lst as $it) {
+                if (!isset($it['id'], $it['orden'])) return false;
+                if (!is_numeric($it['id']) || !is_numeric($it['orden'])) return false;
+            }
+            return true;
+        };
+        if (!$validaLista($cats) || !$validaLista($subs) || !$validaLista($prods)) {
+            jsonErr('Formato de listas inválido');
+        }
+
+        $model->actualizarOrdenes($cats, $subs, $prods);
+        jsonOk(['actualizado' => true]);
     }
 
-    // Método no soportado
     jsonErr('Método no permitido', 405);
 
 } catch (Throwable $e) {
+    // Log opcional a archivo si lo necesitás
     jsonErr('Error: ' . $e->getMessage(), 500);
 }

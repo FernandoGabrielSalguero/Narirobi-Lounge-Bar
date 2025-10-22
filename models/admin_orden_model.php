@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-class AdminOrdenModel
+final class AdminOrdenModel
 {
     private \PDO $pdo;
 
@@ -12,76 +12,107 @@ class AdminOrdenModel
         $this->pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
     }
 
-    /** @return array<int, array<string,mixed>> */
-    public function listar(): array
+    /**
+     * Devuelve estructura completa:
+     * - categorias [{id,nombre,orden}]
+     * - subcategorias [{id,nombre,orden}]
+     * - productos [{id,nombre,orden,categoria_id,subcategoria_id}]
+     * - mapa_subcategorias_por_categoria {catId: [sub...]}
+     * - mapa_productos_por_cat_sub {"catId_subId": [prod...]}
+     * @return array<string,mixed>
+     */
+    public function obtenerEstructuraOrden(): array
     {
-        $sql = "SELECT id, nombre, telefono, fecha, hora, personas, estado, notas
-                FROM reservas
-                ORDER BY fecha DESC, hora DESC";
-        $stmt = $this->pdo->query($sql);
-        return $stmt->fetchAll();
-    }
+        // Categorías
+        $cats = $this->pdo->query(
+            "SELECT id, nombre, orden FROM categorias ORDER BY orden ASC, id ASC"
+        )->fetchAll();
 
-    /** @return array<string,mixed>|null */
-    public function obtener(int $id): ?array
-    {
-        $stmt = $this->pdo->prepare(
-            "SELECT id, nombre, telefono, fecha, hora, personas, estado, notas
-             FROM reservas WHERE id = :id"
+        // Subcategorías
+        $subs = $this->pdo->query(
+            "SELECT id, nombre, orden FROM subcategorias ORDER BY orden ASC, id ASC"
+        )->fetchAll();
+
+        // Relación categoría-subcategoría (para armar árbol)
+        $rel = $this->pdo->query(
+            "SELECT category_id, subcategory_id FROM categoria_subcategoria"
+        )->fetchAll();
+
+        // Productos (solo columnas necesarias)
+        $stmt = $this->pdo->query(
+            "SELECT id, nombre, orden, categoria AS categoria_id, subcategoria AS subcategoria_id
+             FROM productos
+             ORDER BY orden ASC, id ASC"
         );
-        $stmt->bindValue(':id', $id, \PDO::PARAM_INT);
-        $stmt->execute();
-        $row = $stmt->fetch();
-        return $row ?: null;
+        $prods = $stmt->fetchAll();
+
+        // Mapear subcategorías por categoría
+        $mapSubPorCat = [];
+        $subById = [];
+        foreach ($subs as $s) { $subById[(int)$s['id']] = $s; }
+        foreach ($rel as $r) {
+            $cid = (int)$r['category_id'];
+            $sid = (int)$r['subcategory_id'];
+            if (!isset($subById[$sid])) continue;
+            $mapSubPorCat[$cid] ??= [];
+            $mapSubPorCat[$cid][] = $subById[$sid];
+        }
+
+        // Mapear productos por (cat,sub)
+        $mapProdPorCatSub = [];
+        foreach ($prods as $p) {
+            $key = ((int)$p['categoria_id']).'_'.((int)$p['subcategoria_id']);
+            $mapProdPorCatSub[$key] ??= [];
+            $mapProdPorCatSub[$key][] = $p;
+        }
+
+        return [
+            'categorias' => $cats,
+            'subcategorias' => $subs,
+            'productos' => $prods,
+            'mapa_subcategorias_por_categoria' => $mapSubPorCat,
+            'mapa_productos_por_cat_sub' => $mapProdPorCatSub,
+        ];
     }
 
-    /** @return int ID generado */
-    public function crear(array $data): int
+    /**
+     * Actualiza órdenes de forma transaccional.
+     * @param array<int,array{id:int,orden:int}> $cats
+     * @param array<int,array{id:int,orden:int}> $subs
+     * @param array<int,array{id:int,orden:int}> $prods
+     */
+    public function actualizarOrdenes(array $cats, array $subs, array $prods): void
     {
-        $sql = "INSERT INTO reservas
-                (nombre, telefono, fecha, hora, personas, estado, notas)
-                VALUES (:nombre, :telefono, :fecha, :hora, :personas, :estado, :notas)";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->bindValue(':nombre', $data['nombre']);
-        $stmt->bindValue(':telefono', $data['telefono']);
-        $stmt->bindValue(':fecha', $data['fecha']);
-        $stmt->bindValue(':hora', $data['hora']);
-        $stmt->bindValue(':personas', (int)$data['personas'], \PDO::PARAM_INT);
-        $stmt->bindValue(':estado', $data['estado']);
-        $stmt->bindValue(':notas', $data['notas']);
-        $stmt->execute();
-        /** @var int */
-        $id = (int)$this->pdo->lastInsertId();
-        return $id;
-    }
-
-    public function actualizar(int $id, array $data): bool
-    {
-        $sql = "UPDATE reservas
-                SET nombre = :nombre,
-                    telefono = :telefono,
-                    fecha = :fecha,
-                    hora = :hora,
-                    personas = :personas,
-                    estado = :estado,
-                    notas = :notas
-                WHERE id = :id";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->bindValue(':id', $id, \PDO::PARAM_INT);
-        $stmt->bindValue(':nombre', $data['nombre']);
-        $stmt->bindValue(':telefono', $data['telefono']);
-        $stmt->bindValue(':fecha', $data['fecha']);
-        $stmt->bindValue(':hora', $data['hora']);
-        $stmt->bindValue(':personas', (int)$data['personas'], \PDO::PARAM_INT);
-        $stmt->bindValue(':estado', $data['estado']);
-        $stmt->bindValue(':notas', $data['notas']);
-        return $stmt->execute();
-    }
-
-    public function eliminar(int $id): bool
-    {
-        $stmt = $this->pdo->prepare("DELETE FROM reservas WHERE id = :id");
-        $stmt->bindValue(':id', $id, \PDO::PARAM_INT);
-        return $stmt->execute();
+        $this->pdo->beginTransaction();
+        try {
+            if ($cats) {
+                $stmtC = $this->pdo->prepare("UPDATE categorias SET orden = :orden WHERE id = :id");
+                foreach ($cats as $c) {
+                    $stmtC->bindValue(':orden', (int)$c['orden'], \PDO::PARAM_INT);
+                    $stmtC->bindValue(':id', (int)$c['id'], \PDO::PARAM_INT);
+                    $stmtC->execute();
+                }
+            }
+            if ($subs) {
+                $stmtS = $this->pdo->prepare("UPDATE subcategorias SET orden = :orden WHERE id = :id");
+                foreach ($subs as $s) {
+                    $stmtS->bindValue(':orden', (int)$s['orden'], \PDO::PARAM_INT);
+                    $stmtS->bindValue(':id', (int)$s['id'], \PDO::PARAM_INT);
+                    $stmtS->execute();
+                }
+            }
+            if ($prods) {
+                $stmtP = $this->pdo->prepare("UPDATE productos SET orden = :orden WHERE id = :id");
+                foreach ($prods as $p) {
+                    $stmtP->bindValue(':orden', (int)$p['orden'], \PDO::PARAM_INT);
+                    $stmtP->bindValue(':id', (int)$p['id'], \PDO::PARAM_INT);
+                    $stmtP->execute();
+                }
+            }
+            $this->pdo->commit();
+        } catch (\Throwable $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
     }
 }
