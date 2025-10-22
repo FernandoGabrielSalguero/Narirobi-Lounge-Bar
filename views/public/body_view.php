@@ -292,6 +292,7 @@ declare(strict_types=1); ?>
         /* Fuerza PNG a blanco */
         isolation: isolate;
         /* para que overlay no afecte el filter */
+        border-color: var(--color-acento);
     }
 
     .categoria-card::after {
@@ -632,7 +633,7 @@ declare(strict_types=1); ?>
             $cat.innerHTML = '';
             $cat.appendChild(grid);
         }
-        
+
 
         function buildMenu(grouped) {
             $nav.innerHTML = '';
