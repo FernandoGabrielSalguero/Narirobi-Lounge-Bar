@@ -194,6 +194,7 @@ declare(strict_types=1); ?>
         font-size: 14px;
         text-transform: uppercase;
         opacity: .8;
+        color: var(--color-texto);
     }
 
     .sidemenu .group a {
