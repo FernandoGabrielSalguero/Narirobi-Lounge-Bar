@@ -283,38 +283,52 @@ declare(strict_types=1); ?>
         user-select: none;
         min-height: 120px;
         display: grid;
-        place-items: end start;
+        place-items: center;
         padding: 0;
-        background-image: url('/assets/backgroundCards.png');
-        background-size: cover;
-        background-position: center;
-        filter: invert(1) brightness(100%);
-        /* Fuerza PNG a blanco */
+        /* Colorea el patrón PNG con el color_acento usando mask */
+        background: transparent;
         isolation: isolate;
-        /* para que overlay no afecte el filter */
         border-color: var(--color-acento);
     }
 
-    .categoria-card::after {
+    /* Capa con máscara: pinta las “líneas” del PNG con color_acento */
+    .categoria-card::before {
         content: "";
         position: absolute;
         inset: 0;
-        background: rgba(0, 0, 0, 0.25);
-        /* leve oscurecido global */
+        background: var(--color-acento);
+        -webkit-mask: url('/assets/backgroundCards.png') center / cover no-repeat;
+        mask: url('/assets/backgroundCards.png') center / cover no-repeat;
         z-index: 0;
+        opacity: 1;
     }
 
     .categoria-card .categoria-title {
-        position: relative;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
         z-index: 1;
         margin: 0;
-        padding: 10px 12px;
+        padding: 10px 16px;
         text-transform: uppercase;
         font-weight: 700;
         letter-spacing: .5px;
         color: #fff;
-        background: rgba(0, 0, 0, 0.6);
-        width: 100%;
+        background: rgba(0, 0, 0, 0.65);
+        border-radius: 8px;
+        line-height: 1.15;
+        text-align: center;
+        white-space: nowrap;
+        max-width: calc(100% - 24px);
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .categoria-card:focus-visible,
+    .categoria-card:hover {
+        outline: 2px solid var(--color-acento);
+        outline-offset: 2px;
     }
 
     /* Anclas con offset para evitar que el header tape el título */
