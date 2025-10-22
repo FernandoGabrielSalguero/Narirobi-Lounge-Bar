@@ -26,6 +26,9 @@ declare(strict_types=1); ?>
     </aside>
     <div id="backdrop" class="backdrop" hidden></div>
 
+    <!-- Tarjetas de categorías -->
+    <section id="categorias" class="categorias" aria-label="Categorías"></section>
+
     <!-- Listado de productos -->
     <section id="productos" class="productos"></section>
 
@@ -40,6 +43,8 @@ declare(strict_types=1); ?>
         --color-acento: #7c3aed;
         --spacing: 16px;
         --radius: 16px;
+        --header-offset: 96px;
+        /* offset para que no tape el header al hacer scroll */
     }
 
     .carta {
@@ -177,21 +182,30 @@ declare(strict_types=1); ?>
     .sidemenu-header {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        padding: 12px 16px;
+        justify-content: center;
+        padding: 16px;
         border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
     }
 
     .sidemenu-brand {
         display: inline-flex;
         align-items: center;
-        gap: 10px;
+        justify-content: center;
+        flex-direction: column;
+        gap: 8px;
     }
 
     .sidemenu-logo {
-        width: 28px;
-        height: 28px;
+        width: 56px;
+        /* <-- ajustar tamaño aquí */
+        height: 56px;
+        /* <-- ajustar tamaño aquí */
         display: inline-block;
+        filter: invert(1) brightness(100%);
+        /* PNG/SVG en blanco */
     }
 
     .sidemenu-content {
@@ -239,6 +253,72 @@ declare(strict_types=1); ?>
         inset: 0;
         background: rgba(0, 0, 0, 0.35);
         z-index: 35;
+    }
+
+    /* Categorías (tarjetas) */
+    .categorias {
+        padding: 16px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .categorias-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    @media (min-width: 768px) {
+        .categorias-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    .categoria-card {
+        position: relative;
+        border-radius: var(--radius);
+        overflow: hidden;
+        border: 2px solid var(--color-acento);
+        cursor: pointer;
+        user-select: none;
+        min-height: 120px;
+        display: grid;
+        place-items: end start;
+        padding: 0;
+        background-image: url('/assets/backgroundCards.png');
+        background-size: cover;
+        background-position: center;
+        filter: invert(1) brightness(100%);
+        /* Fuerza PNG a blanco */
+        isolation: isolate;
+        /* para que overlay no afecte el filter */
+    }
+
+    .categoria-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.25);
+        /* leve oscurecido global */
+        z-index: 0;
+    }
+
+    .categoria-card .categoria-title {
+        position: relative;
+        z-index: 1;
+        margin: 0;
+        padding: 10px 12px;
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: .5px;
+        color: #fff;
+        background: rgba(0, 0, 0, 0.6);
+        width: 100%;
+    }
+
+    /* Anclas con offset para evitar que el header tape el título */
+    .anchor-offset {
+        scroll-margin-top: var(--header-offset);
     }
 
     /* Productos */
@@ -344,6 +424,44 @@ declare(strict_types=1); ?>
             background-color: #0000004f;
             padding: 10px;
         }
+    }
+
+    .sidemenu .group {
+        padding: 8px 16px;
+    }
+
+    .cat-accordion {
+        width: 100%;
+        text-align: left;
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        color: #ffffff;
+        font-weight: 600;
+        padding: 10px 12px;
+        cursor: pointer;
+    }
+
+    .cat-accordion[aria-expanded="true"] {
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    .sub-list {
+        padding: 6px 6px 0 6px;
+    }
+
+    .sub-list a {
+        display: block;
+        padding: 8px 10px;
+        margin: 6px 0 0 0;
+        border-radius: 8px;
+        text-decoration: none;
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .sub-list a:hover {
+        background: var(--color-texto);
     }
 </style>
 
@@ -468,24 +586,92 @@ declare(strict_types=1); ?>
             });
         }
 
+        // Scroll con offset para no tapar títulos con el header
+        function scrollToId(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+
+        // Construye tarjetas de categorías
+        function buildCategoryCards(grouped) {
+            const $cat = document.getElementById('categorias');
+            if (!$cat) return;
+
+            const grid = document.createElement('div');
+            grid.className = 'categorias-grid';
+
+            sortByOrden(grouped).forEach(cat => {
+                const card = document.createElement('article');
+                card.className = 'categoria-card';
+                card.setAttribute('role', 'button');
+                card.setAttribute('tabindex', '0');
+                card.setAttribute('aria-label', 'Ir a ' + cat.categoria_nombre);
+
+                const title = document.createElement('h4');
+                title.className = 'categoria-title';
+                title.textContent = String(cat.categoria_nombre || '').toUpperCase();
+
+                // Click / Enter para navegar
+                const go = () => scrollToId('cat-' + cat.categoria_id);
+                card.addEventListener('click', go);
+                card.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        go();
+                    }
+                });
+
+                card.appendChild(title);
+                grid.appendChild(card);
+            });
+
+            $cat.innerHTML = '';
+            $cat.appendChild(grid);
+        }
+
         function buildMenu(grouped) {
             $nav.innerHTML = '';
+
             sortByOrden(grouped).forEach(cat => {
-                const g = document.createElement('div');
-                g.className = 'group';
-                const h = document.createElement('h5');
-                h.textContent = cat.categoria_nombre;
-                g.appendChild(h);
+                const wrapper = document.createElement('div');
+                wrapper.className = 'group';
+
+                // Botón de categoría (acordeón)
+                const catBtn = document.createElement('button');
+                catBtn.type = 'button';
+                catBtn.className = 'cat-accordion';
+                catBtn.setAttribute('aria-expanded', 'false');
+                catBtn.textContent = cat.categoria_nombre;
+
+                const subList = document.createElement('div');
+                subList.className = 'sub-list';
+                subList.hidden = true;
 
                 sortByOrden(cat.subcategorias).forEach(sub => {
                     const a = document.createElement('a');
                     a.href = '#sub-' + sub.subcategoria_id;
                     a.textContent = sub.subcategoria_nombre;
-                    a.addEventListener('click', () => toggleMenu(false));
-                    g.appendChild(a);
+                    a.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        scrollToId('sub-' + sub.subcategoria_id);
+                        toggleMenu(false);
+                    });
+                    subList.appendChild(a);
                 });
 
-                $nav.appendChild(g);
+                catBtn.addEventListener('click', () => {
+                    const open = catBtn.getAttribute('aria-expanded') === 'true';
+                    catBtn.setAttribute('aria-expanded', String(!open));
+                    subList.hidden = open;
+                });
+
+                wrapper.appendChild(catBtn);
+                wrapper.appendChild(subList);
+                $nav.appendChild(wrapper);
             });
         }
 
@@ -495,6 +681,7 @@ declare(strict_types=1); ?>
             sortByOrden(grouped).forEach(cat => {
                 const catAnchor = document.createElement('div');
                 catAnchor.id = 'cat-' + cat.categoria_id;
+                catAnchor.className = 'anchor-offset';
 
                 const h3 = document.createElement('h3');
                 h3.textContent = cat.categoria_nombre;
@@ -503,6 +690,7 @@ declare(strict_types=1); ?>
                 sortByOrden(cat.subcategorias).forEach(sub => {
                     const subWrap = document.createElement('section');
                     subWrap.id = 'sub-' + sub.subcategoria_id;
+                    subWrap.className = 'anchor-offset';
 
                     const h2 = document.createElement('h2');
                     h2.textContent = sub.subcategoria_nombre;
@@ -573,6 +761,7 @@ declare(strict_types=1); ?>
         }
 
 
+
         function toggleMenu(force) {
             const willOpen = typeof force === 'boolean' ? force : !$menu.classList.contains('open');
 
@@ -634,6 +823,7 @@ declare(strict_types=1); ?>
                 }));
 
                 buildMenu(categoriasOrdenadas);
+                buildCategoryCards(categoriasOrdenadas);
                 buildProductos(categoriasOrdenadas);
             })
 

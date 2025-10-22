@@ -48,25 +48,25 @@ final class BodyModel
     // Detectar si existe `url_imagen`
     $hasUrlImagen = false;
     try {
-        $chk = $this->pdo->query("SHOW COLUMNS FROM imagenes LIKE 'url_imagen'");
-        $hasUrlImagen = (bool) $chk->fetch();
+      $chk = $this->pdo->query("SHOW COLUMNS FROM imagenes LIKE 'url_imagen'");
+      $hasUrlImagen = (bool) $chk->fetch();
     } catch (\Throwable $e) {
-        $hasUrlImagen = false;
+      $hasUrlImagen = false;
     }
 
     $sql = $hasUrlImagen
-        ? "SELECT COALESCE(url_imagen, url) AS url FROM imagenes WHERE COALESCE(url_imagen, url) IS NOT NULL ORDER BY id ASC"
-        : "SELECT url AS url FROM imagenes WHERE url IS NOT NULL AND url <> '' ORDER BY id ASC";
+      ? "SELECT COALESCE(url_imagen, url) AS url FROM imagenes WHERE COALESCE(url_imagen, url) IS NOT NULL ORDER BY id ASC"
+      : "SELECT url AS url FROM imagenes WHERE url IS NOT NULL AND url <> '' ORDER BY id ASC";
 
     $stmt = $this->pdo->query($sql);
     $rows = $stmt->fetchAll();
 
     $images = [];
     foreach ($rows as $r) {
-        $u = trim((string)($r['url'] ?? ''));
-        if ($u !== '') {
-            $images[] = ['url' => $u];
-        }
+      $u = trim((string)($r['url'] ?? ''));
+      if ($u !== '') {
+        $images[] = ['url' => $u];
+      }
     }
     return $images;
   }
@@ -100,7 +100,13 @@ final class BodyModel
             FROM productos p
             INNER JOIN categorias c   ON c.id = p.categoria AND c.estado = 1
             INNER JOIN subcategorias s ON s.id = p.subcategoria AND s.estado = 1
-            ORDER BY c.nombre ASC, s.nombre ASC, p.orden ASC, p.nombre ASC
+            ORDER BY 
+                c.orden ASC, 
+                s.orden ASC, 
+                p.orden ASC,
+                c.nombre ASC,
+                s.nombre ASC,
+                p.nombre ASC
         ";
 
     $stmt = $this->pdo->query($sql);
