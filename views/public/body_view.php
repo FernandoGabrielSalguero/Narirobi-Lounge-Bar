@@ -159,7 +159,7 @@ declare(strict_types=1); ?>
         max-width: 86vw;
         height: 100vh;
         background: var(--color-fondo);
-        color: var(--color-texto);
+        color: #ffffffff;
         box-shadow: -8px 0 24px rgba(0, 0, 0, 0.2);
         transition: right 0.3s ease;
         z-index: 40;
@@ -277,7 +277,7 @@ declare(strict_types=1); ?>
     }
 
     .item-detalle {
-        color: var(--color-texto);
+        color: #ffffffff;
         opacity: .9;
         margin-bottom: 6px;
     }
