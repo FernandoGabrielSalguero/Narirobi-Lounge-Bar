@@ -332,14 +332,6 @@ declare(strict_types=1); ?>
         outline: none;
     }
 
-    /* si un título es extremadamente largo sin espacios, permitir quebra por caracteres */
-    @supports (overflow-wrap: anywhere) {
-        .categoria-card .categoria-title {
-            overflow-wrap: anywhere;
-            word-break: break-word;
-        }
-    }
-
     /* Anclas con offset para evitar que el header tape el título */
     .anchor-offset {
         scroll-margin-top: var(--header-offset);
