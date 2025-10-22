@@ -18,7 +18,7 @@ declare(strict_types=1); ?>
         <header class="sidemenu-header">
             <div class="sidemenu-brand">
                 <img src="/assets/logo_giftCard.svg" alt="Gift Card" class="sidemenu-logo" decoding="async" loading="lazy">
-                <h4>Secciones</h4>
+                <h4>Nuestro menú</h4>
             </div>
             <button id="closeMenu" class="close" aria-label="Cerrar menú">×</button>
         </header>
