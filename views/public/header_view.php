@@ -1,6 +1,6 @@
 <?php declare(strict_types=1); ?>
 <header class="nlb-header" role="banner">
-  <div class="brand">Nairobi Lounge Bar</div>
+  <div class="brand">NAIROBI Lounge Bar</div>
 
   <!-- Botón hamburguesa (abre panel con acciones) -->
   <button id="menuToggle"
