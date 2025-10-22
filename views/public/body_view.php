@@ -16,7 +16,10 @@ declare(strict_types=1); ?>
     <button id="fabMenu" class="fab" aria-haspopup="true" aria-controls="sideMenu" aria-expanded="false">☰</button>
     <aside id="sideMenu" class="sidemenu" aria-hidden="true" inert tabindex="-1">
         <header class="sidemenu-header">
-            <h4>Secciones</h4>
+            <div class="sidemenu-brand">
+                <img src="/assets/logo_giftCard.svg" alt="Gift Card" class="sidemenu-logo" decoding="async" loading="lazy">
+                <h4>Secciones</h4>
+            </div>
             <button id="closeMenu" class="close" aria-label="Cerrar menú">×</button>
         </header>
         <nav id="sideNav" class="sidemenu-content" aria-label="Navegación por categorías y subcategorías"></nav>
@@ -177,6 +180,18 @@ declare(strict_types=1); ?>
         justify-content: space-between;
         padding: 12px 16px;
         border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .sidemenu-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .sidemenu-logo {
+        width: 28px;
+        height: 28px;
+        display: inline-block;
     }
 
     .sidemenu-content {
@@ -443,16 +458,26 @@ declare(strict_types=1); ?>
         $btnNext.addEventListener('click', next);
         $btnPrev.addEventListener('click', prev);
 
+        // Orden ascendente por propiedad 'orden'. Los que no tienen 'orden' van al final.
+        function sortByOrden(list) {
+            if (!Array.isArray(list)) return [];
+            return [...list].sort((a, b) => {
+                const ao = (a && typeof a.orden !== 'undefined') ? Number(a.orden) : Number.POSITIVE_INFINITY;
+                const bo = (b && typeof b.orden !== 'undefined') ? Number(b.orden) : Number.POSITIVE_INFINITY;
+                return ao - bo;
+            });
+        }
+
         function buildMenu(grouped) {
             $nav.innerHTML = '';
-            grouped.forEach(cat => {
+            sortByOrden(grouped).forEach(cat => {
                 const g = document.createElement('div');
                 g.className = 'group';
                 const h = document.createElement('h5');
                 h.textContent = cat.categoria_nombre;
                 g.appendChild(h);
 
-                cat.subcategorias.forEach(sub => {
+                sortByOrden(cat.subcategorias).forEach(sub => {
                     const a = document.createElement('a');
                     a.href = '#sub-' + sub.subcategoria_id;
                     a.textContent = sub.subcategoria_nombre;
@@ -467,7 +492,7 @@ declare(strict_types=1); ?>
         function buildProductos(grouped) {
             const frag = document.createDocumentFragment();
 
-            grouped.forEach(cat => {
+            sortByOrden(grouped).forEach(cat => {
                 const catAnchor = document.createElement('div');
                 catAnchor.id = 'cat-' + cat.categoria_id;
 
@@ -475,7 +500,7 @@ declare(strict_types=1); ?>
                 h3.textContent = cat.categoria_nombre;
                 catAnchor.appendChild(h3);
 
-                cat.subcategorias.forEach(sub => {
+                sortByOrden(cat.subcategorias).forEach(sub => {
                     const subWrap = document.createElement('section');
                     subWrap.id = 'sub-' + sub.subcategoria_id;
 
@@ -507,7 +532,11 @@ declare(strict_types=1); ?>
 
                         const precio = document.createElement('div');
                         precio.className = 'item-precio';
-                        precio.textContent = p.precio;
+
+                        // Mostrar sólo entero y con símbolo $
+                        const n = Number(p.precio);
+                        const entero = Number.isFinite(n) ? Math.trunc(n) : 0;
+                        precio.textContent = '$ ' + entero.toLocaleString('es-AR');
 
                         header.appendChild(nombre);
                         header.appendChild(precio);
@@ -542,6 +571,7 @@ declare(strict_types=1); ?>
             $productos.innerHTML = '';
             $productos.appendChild(frag);
         }
+
 
         function toggleMenu(force) {
             const willOpen = typeof force === 'boolean' ? force : !$menu.classList.contains('open');
@@ -596,9 +626,17 @@ declare(strict_types=1); ?>
                 } = payload.data;
                 setTheme(colors);
                 buildCarousel(images);
-                buildMenu(products);
-                buildProductos(products);
+
+                // Aseguramos orden por 'orden' en categorías y subcategorías
+                const categoriasOrdenadas = sortByOrden(products).map(cat => ({
+                    ...cat,
+                    subcategorias: sortByOrden(cat.subcategorias || [])
+                }));
+
+                buildMenu(categoriasOrdenadas);
+                buildProductos(categoriasOrdenadas);
             })
+
             .catch(err => {
                 console.error('Error cargando carta:', err);
             });
