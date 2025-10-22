@@ -202,11 +202,11 @@ declare(strict_types=1); ?>
         margin: 2px 0;
         border-radius: 8px;
         text-decoration: none;
-        color: var(--color-texto);
+        color: #ffffff;
     }
 
     .sidemenu .group a:hover {
-        background: rgba(0, 0, 0, 0.06);
+        background: var(--color-texto);
     }
 
     .close {
