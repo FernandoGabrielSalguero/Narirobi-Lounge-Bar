@@ -151,6 +151,7 @@ final class BodyModel
       $byCat[$catId]['subcategorias'][$subId]['productos'][] = $producto;
     }
 
+    
     // Normalizar índices de subcategorías
     $result = [];
     foreach ($byCat as $cat) {

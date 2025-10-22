@@ -632,6 +632,7 @@ declare(strict_types=1); ?>
             $cat.innerHTML = '';
             $cat.appendChild(grid);
         }
+        
 
         function buildMenu(grouped) {
             $nav.innerHTML = '';
