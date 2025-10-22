@@ -278,7 +278,7 @@ declare(strict_types=1); ?>
         position: relative;
         border-radius: var(--radius);
         overflow: hidden;
-        border: 2px solid var(--color-acento);
+        /* sin borde visible */
         cursor: pointer;
         user-select: none;
         min-height: 120px;
@@ -288,7 +288,6 @@ declare(strict_types=1); ?>
         /* Colorea el patrón PNG con el color_acento usando mask */
         background: transparent;
         isolation: isolate;
-        border-color: var(--color-acento);
     }
 
     /* Capa con máscara: pinta las “líneas” del PNG con color_acento */
@@ -317,18 +316,28 @@ declare(strict_types=1); ?>
         color: #fff;
         background: rgba(0, 0, 0, 0.65);
         border-radius: 8px;
-        line-height: 1.15;
+        line-height: 1.2;
         text-align: center;
-        white-space: nowrap;
+        /* permitir múltiples líneas sin cortar palabras */
+        white-space: normal;
+        word-break: normal;
+        overflow-wrap: normal;
+        /* limitar ancho para respiración en bordes */
         max-width: calc(100% - 24px);
-        overflow: hidden;
-        text-overflow: ellipsis;
     }
 
+    /* sin outline de hover/focus para mantener tarjetas sin borde */
     .categoria-card:focus-visible,
     .categoria-card:hover {
-        outline: 2px solid var(--color-acento);
-        outline-offset: 2px;
+        outline: none;
+    }
+
+    /* si un título es extremadamente largo sin espacios, permitir quebra por caracteres */
+    @supports (overflow-wrap: anywhere) {
+        .categoria-card .categoria-title {
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
     }
 
     /* Anclas con offset para evitar que el header tape el título */
