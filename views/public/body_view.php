@@ -19,9 +19,7 @@ declare(strict_types=1); ?>
         <div class="carousel-dots" id="carouselDots" aria-hidden="true"></div>
     </section>
 
-    <!-- Menú lateral flotante -->
-    <button id="fabMenu" class="fab" aria-haspopup="true" aria-controls="sideMenu" aria-expanded="false">☰</button>
-    <button id="btnToMenu" class="fab fab-up" aria-label="Ir al menú principal" type="button">↑</button>
+        <!-- Menú lateral flotante -->
     <aside id="sideMenu" class="sidemenu" aria-hidden="true" inert tabindex="-1">
         <header class="sidemenu-header">
             <div class="sidemenu-brand">
@@ -44,6 +42,10 @@ declare(strict_types=1); ?>
     <div id="modalHost" aria-live="polite"></div>
 </main>
 
+<!-- Botones menú-->
+    <button id="fabMenu" class="fab" aria-haspopup="true" aria-controls="sideMenu" aria-expanded="false">☰</button>
+    <button id="btnToMenu" class="fab fab-up" aria-label="Ir al menú principal" type="button">↑</button>
+
 <style>
     :root {
         --color-texto: #111111;
@@ -57,8 +59,7 @@ declare(strict_types=1); ?>
     /* Botón flotante secundario (volver al menú principal) */
     .fab-up {
         position: fixed;
-        right: 84px;
-        /* separarlo del FAB principal */
+        right: 84px; /* separarlo del FAB principal */
         bottom: 16px;
         width: 56px;
         height: 56px;
@@ -68,8 +69,12 @@ declare(strict_types=1); ?>
         color: #fff;
         font-size: 22px;
         cursor: pointer;
-        z-index: 30;
+        z-index: 1000;
         box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: auto;
     }
 
     /* ====== Tipografía global única ====== */
@@ -191,9 +196,14 @@ declare(strict_types=1); ?>
         color: #fff;
         font-size: 22px;
         cursor: pointer;
-        z-index: 30;
+        z-index: 1000;
         box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: auto;
     }
+
 
     .sidemenu {
         position: fixed;
