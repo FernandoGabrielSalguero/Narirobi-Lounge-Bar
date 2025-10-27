@@ -617,6 +617,10 @@ declare(strict_types=1); ?>
     .sub-list a:hover {
         background: var(--color-texto);
     }
+
+    .item-precio {
+        white-space: nowrap;
+    }
 </style>
 
 <script>
@@ -954,7 +958,7 @@ declare(strict_types=1); ?>
                         // Mostrar sólo entero y con símbolo $
                         const n = Number(p.precio);
                         const entero = Number.isFinite(n) ? Math.trunc(n) : 0;
-                        precio.textContent = '$ ' + entero.toLocaleString('es-AR');
+                        precio.textContent = '$\u00A0' + entero.toLocaleString('es-AR');
 
                         header.appendChild(nombre);
                         header.appendChild(precio);
@@ -1025,7 +1029,6 @@ declare(strict_types=1); ?>
             }
         });
 
-        $fab.addEventListener('click', () => toggleMenu());
         $close.addEventListener('click', () => toggleMenu(false));
         $backdrop.addEventListener('click', () => toggleMenu(false));
 
@@ -1033,7 +1036,6 @@ declare(strict_types=1); ?>
         $fab.addEventListener('click', () => {
             const willOpen = !$menu.classList.contains('open');
             toggleMenu(willOpen);
-            $fab.setAttribute('aria-expanded', String(willOpen));
         });
 
         // Carga inicial
