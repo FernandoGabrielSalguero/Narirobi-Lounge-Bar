@@ -20,8 +20,8 @@ declare(strict_types=1); ?>
     </section>
 
     <!-- Menú lateral flotante -->
-<button id="fabMenu" class="fab" aria-haspopup="true" aria-controls="sideMenu" aria-expanded="false">☰</button>
-<button id="btnToMenu" class="fab fab-up" aria-label="Ir al menú principal" type="button">↑</button>
+    <button id="fabMenu" class="fab" aria-haspopup="true" aria-controls="sideMenu" aria-expanded="false">☰</button>
+    <button id="btnToMenu" class="fab fab-up" aria-label="Ir al menú principal" type="button">↑</button>
     <aside id="sideMenu" class="sidemenu" aria-hidden="true" inert tabindex="-1">
         <header class="sidemenu-header">
             <div class="sidemenu-brand">
@@ -55,21 +55,22 @@ declare(strict_types=1); ?>
     }
 
     /* Botón flotante secundario (volver al menú principal) */
-.fab-up{
-    position: fixed;
-    right: 84px;   /* separarlo del FAB principal */
-    bottom: 16px;
-    width: 56px;
-    height: 56px;
-    border-radius: 999px;
-    border: none;
-    background: var(--color-acento);
-    color: #fff;
-    font-size: 22px;
-    cursor: pointer;
-    z-index: 30;
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
-}
+    .fab-up {
+        position: fixed;
+        right: 84px;
+        /* separarlo del FAB principal */
+        bottom: 16px;
+        width: 56px;
+        height: 56px;
+        border-radius: 999px;
+        border: none;
+        background: var(--color-acento);
+        color: #fff;
+        font-size: 22px;
+        cursor: pointer;
+        z-index: 30;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+    }
 
     /* ====== Tipografía global única ====== */
     html,
@@ -587,12 +588,12 @@ declare(strict_types=1); ?>
         const $close = document.getElementById('closeMenu');
         const $backdrop = document.getElementById('backdrop');
 
-const $btnToMenu = document.getElementById('btnToMenu');
-if ($btnToMenu) {
-    $btnToMenu.addEventListener('click', () => {
-        navigateTo('categorias');
-    });
-}
+        const $btnToMenu = document.getElementById('btnToMenu');
+        if ($btnToMenu) {
+            $btnToMenu.addEventListener('click', () => {
+                navigateTo('categorias');
+            });
+        }
 
 
         let slideIndex = 0;
@@ -700,17 +701,22 @@ if ($btnToMenu) {
             });
         }
 
-      // Scroll con offset (usa .anchor-offset y espera al reflow si es necesario)
+        // Scroll con offset (usa .anchor-offset y espera al reflow si es necesario)
         function scrollToId(id) {
             const el = document.getElementById(id);
             if (!el) return;
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            el.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
         }
 
-// Navega a un id, ejecutando una acción previa (cerrar acordeón/menú) y
-// esperando dos frames para evitar que el header tape el título tras el reflow.
+        // Navega a un id, ejecutando una acción previa (cerrar acordeón/menú) y
+        // esperando dos frames para evitar que el header tape el título tras el reflow.
         function navigateTo(id, beforeAction) {
-            try { if (typeof beforeAction === 'function') beforeAction(); } catch (_) {}
+            try {
+                if (typeof beforeAction === 'function') beforeAction();
+            } catch (_) {}
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     scrollToId(id);
@@ -764,13 +770,13 @@ if ($btnToMenu) {
                     a.href = '#sub-' + sub.subcategoria_id;
                     a.textContent = sub.subcategoria_nombre;
                     a.addEventListener('click', (e) => {
-    e.preventDefault();
-    navigateTo('sub-' + sub.subcategoria_id, () => {
-        toggle.setAttribute('aria-expanded', 'false');
-        panel.hidden = true;
-        card.classList.remove('open');
-    });
-});
+                        e.preventDefault();
+                        navigateTo('sub-' + sub.subcategoria_id, () => {
+                            toggle.setAttribute('aria-expanded', 'false');
+                            panel.hidden = true;
+                            card.classList.remove('open');
+                        });
+                    });
 
                     subGrid.appendChild(a);
                 });
@@ -809,6 +815,10 @@ if ($btnToMenu) {
             if (id) scrollToId(id);
         });
 
+        window.addEventListener('hashchange', () => {
+            const id = (location.hash || '').slice(1);
+            if (id) navigateTo(id);
+        });
 
         function buildMenu(grouped) {
             $nav.innerHTML = '';
@@ -833,11 +843,11 @@ if ($btnToMenu) {
                     a.href = '#sub-' + sub.subcategoria_id;
                     a.textContent = sub.subcategoria_nombre;
                     a.addEventListener('click', (e) => {
-    e.preventDefault();
-    navigateTo('sub-' + sub.subcategoria_id, () => {
-        toggleMenu(false);
-    });
-});
+                        e.preventDefault();
+                        navigateTo('sub-' + sub.subcategoria_id, () => {
+                            toggleMenu(false);
+                        });
+                    });
 
                     subList.appendChild(a);
                 });
