@@ -19,7 +19,7 @@ declare(strict_types=1); ?>
         <div class="carousel-dots" id="carouselDots" aria-hidden="true"></div>
     </section>
 
-        <!-- Menú lateral flotante -->
+    <!-- Menú lateral flotante -->
     <aside id="sideMenu" class="sidemenu" aria-hidden="true" inert tabindex="-1">
         <header class="sidemenu-header">
             <div class="sidemenu-brand">
@@ -65,13 +65,21 @@ declare(strict_types=1); ?>
         --spacing: 16px;
         --radius: 16px;
         --header-offset: 96px;
+
+        /* NUEVO: variables usadas por los FABs */
+        --fab-gap: 16px;
+        --fab-size: 56px;
+        /* altura estimada de la barra/banda inferior que te lo tapa (ajustá si cambia) */
+        --footer-height: 64px;
     }
 
-/* Botón flotante secundario (volver al menú principal) */
-.fab-up {
-    position: fixed;
-    right: 16px;
-    bottom: 88px; /* arriba del fab principal */
+
+    /* Botón flotante secundario (volver al menú principal) */
+    .fab-up {
+        position: fixed;
+        right: 16px;
+        bottom: 88px;
+        /* arriba del fab principal */
         width: 56px;
         height: 56px;
         border-radius: 999px;
@@ -88,29 +96,45 @@ declare(strict_types=1); ?>
         pointer-events: auto;
     }
 
-    .fab svg, .fab-up svg {
-    width: 24px;
-    height: 24px;
-    fill: currentColor;
-    display: block;
-}
+    .fab svg,
+    .fab-up svg {
+        width: 24px;
+        height: 24px;
+        fill: currentColor;
+        display: block;
+    }
 
-/* FAB principal (menú) */
-.fab{
-  position: fixed;
-  right: var(--fab-gap);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--fab-gap) + 56px); /* <- subir 56px (o lo que mida tu barra inferior) */
-  z-index: 1200; /* mayor que cualquier footer/banner */
-}
+    /* FABs (unificado y por encima de barras inferiores) */
+    .fab,
+    .fab-up {
+        position: fixed;
+        right: var(--fab-gap);
+        z-index: 1200;
+        width: var(--fab-size);
+        height: var(--fab-size);
+        border-radius: 999px;
+        border: 0;
+        background: var(--color-acento);
+        color: #fff;
+        font-size: 22px;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, .25);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: auto;
+    }
 
-/* FAB secundario (sube al menú) */
-.fab-up{
-  position: fixed;
-  right: var(--fab-gap);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--fab-gap) + var(--fab-size) + 96px); /* deja un nivel por encima del principal */
-  z-index: 1200;
-}
+    /* principal (abre el drawer) */
+    .fab {
+        /* coloca el botón por encima de la banda inferior + margen */
+        bottom: calc(env(safe-area-inset-bottom, 0px) + var(--footer-height) + var(--fab-gap));
+    }
 
+    /* secundario (subir al menú) */
+    .fab-up {
+        /* apoya encima del principal con un gap adicional */
+        bottom: calc(env(safe-area-inset-bottom, 0px) + var(--footer-height) + var(--fab-gap) + var(--fab-size) + 12px);
+    }
 
     /* ====== Tipografía global única ====== */
     html,
@@ -216,27 +240,6 @@ declare(strict_types=1); ?>
 
     .carousel-dot.active {
         background: rgba(255, 255, 255, 0.95);
-    }
-
-    /* FAB + Side menu */
-    .fab {
-        position: fixed;
-        right: 16px;
-        bottom: 16px;
-        width: 56px;
-        height: 56px;
-        border-radius: 999px;
-        border: none;
-        background: var(--color-acento);
-        color: #fff;
-        font-size: 22px;
-        cursor: pointer;
-        z-index: 1000;
-        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        pointer-events: auto;
     }
 
     .sidemenu {
@@ -853,10 +856,10 @@ declare(strict_types=1); ?>
             $cat.appendChild(grid);
         }
 
-window.addEventListener('hashchange', () => {
-    const id = (location.hash || '').slice(1);
-    if (id) navigateTo(id);
-});
+        window.addEventListener('hashchange', () => {
+            const id = (location.hash || '').slice(1);
+            if (id) navigateTo(id);
+        });
 
         function buildMenu(grouped) {
             $nav.innerHTML = '';
@@ -1028,10 +1031,10 @@ window.addEventListener('hashchange', () => {
 
 
         $fab.addEventListener('click', () => {
-    const willOpen = !$menu.classList.contains('open');
-    toggleMenu(willOpen);
-    $fab.setAttribute('aria-expanded', String(willOpen));
-});
+            const willOpen = !$menu.classList.contains('open');
+            toggleMenu(willOpen);
+            $fab.setAttribute('aria-expanded', String(willOpen));
+        });
 
         // Carga inicial
         fetch(API, {
