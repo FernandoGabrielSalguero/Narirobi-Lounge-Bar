@@ -1,7 +1,13 @@
 <?php
 
 declare(strict_types=1); ?>
+<!-- Fuentes de Google con prioridad -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700&family=Forum&display=swap" rel="stylesheet">
+
 <main id="app-main" class="carta">
+
     <!-- Carrusel -->
     <section class="carousel" aria-label="Galería de imágenes destacadas">
         <div class="carousel-viewport">
@@ -44,7 +50,25 @@ declare(strict_types=1); ?>
         --spacing: 16px;
         --radius: 16px;
         --header-offset: 96px;
-        /* offset para que no tape el header al hacer scroll */
+        /* Tipografías */
+        --font-sans: "DM Sans", system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+        --font-display: "Forum", Georgia, "Times New Roman", serif;
+    }
+
+    html,
+    body {
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    .categoria-title {
+        font-family: var(--font-display);
     }
 
     .carta {
@@ -278,19 +302,24 @@ declare(strict_types=1); ?>
         position: relative;
         border-radius: var(--radius);
         overflow: hidden;
-        /* sin borde visible */
         cursor: pointer;
         user-select: none;
         min-height: 120px;
-        display: grid;
-        place-items: center;
-        padding: 0;
-        /* Colorea el patrón PNG con el color_acento usando mask */
+        display: block;
         background: transparent;
         isolation: isolate;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        transition: box-shadow .2s ease, transform .2s ease;
     }
 
-    /* Capa con máscara: pinta las “líneas” del PNG con color_acento */
+    .categoria-card:hover {
+        transform: translateY(-1px);
+    }
+
+    .categoria-card.open {
+        box-shadow: 0 10px 28px rgba(0, 0, 0, .25);
+    }
+
     .categoria-card::before {
         content: "";
         position: absolute;
@@ -302,35 +331,83 @@ declare(strict_types=1); ?>
         opacity: 1;
     }
 
-    .categoria-card .categoria-title {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
+    /* Header / botón de la tarjeta */
+    .categoria-header {
+        position: relative;
         z-index: 1;
-        margin: 0;
+        display: grid;
+        place-items: center;
+        min-height: 120px;
+        padding: 0;
+    }
+
+    .categoria-toggle {
+        appearance: none;
+        background: rgba(0, 0, 0, 0.55);
+        border: 0;
+        border-radius: 10px;
         padding: 10px 16px;
+        color: #fff;
         text-transform: uppercase;
         font-weight: 700;
         letter-spacing: .5px;
-        color: #fff;
-        background: rgba(0, 0, 0, 0.65);
-        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    .categoria-toggle:focus {
+        outline: 2px solid rgba(255, 255, 255, .6);
+        outline-offset: 2px;
+    }
+
+    .categoria-title {
+        margin: 0;
         line-height: 1.2;
         text-align: center;
-        /* permitir múltiples líneas sin cortar palabras */
         white-space: normal;
         word-break: normal;
         overflow-wrap: normal;
-        /* limitar ancho para respiración en bordes */
         max-width: calc(100% - 24px);
     }
 
-    /* sin outline de hover/focus para mantener tarjetas sin borde */
-    .categoria-card:focus-visible,
-    .categoria-card:hover {
-        outline: none;
+    /* Panel de subcategorías */
+    .categoria-panel {
+        position: relative;
+        z-index: 1;
+        padding: 10px 12px 12px 12px;
+        background: rgba(0, 0, 0, 0.45);
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
+        display: none;
     }
+
+    .categoria-card.open .categoria-panel {
+        display: block;
+    }
+
+    .categoria-sublist {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    @media (min-width: 768px) {
+        .categoria-sublist {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    .categoria-sublist a {
+        display: block;
+        padding: 8px 10px;
+        border-radius: 8px;
+        text-decoration: none;
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.08);
+    }
+
+    .categoria-sublist a:hover {
+        background: rgba(255, 255, 255, 0.18);
+    }
+
 
     /* Anclas con offset para evitar que el header tape el título */
     .anchor-offset {
@@ -612,7 +689,7 @@ declare(strict_types=1); ?>
             });
         }
 
-        // Construye tarjetas de categorías
+        // Construye tarjetas de categorías como acordeón (muestra subcategorías al expandir)
         function buildCategoryCards(grouped) {
             const $cat = document.getElementById('categorias');
             if (!$cat) return;
@@ -623,31 +700,83 @@ declare(strict_types=1); ?>
             sortByOrden(grouped).forEach(cat => {
                 const card = document.createElement('article');
                 card.className = 'categoria-card';
-                card.setAttribute('role', 'button');
-                card.setAttribute('tabindex', '0');
-                card.setAttribute('aria-label', 'Ir a ' + cat.categoria_nombre);
+                card.setAttribute('aria-labelledby', 'cat-title-' + cat.categoria_id);
+
+                // Header + botón accesible que alterna la apertura
+                const header = document.createElement('div');
+                header.className = 'categoria-header';
+
+                const toggle = document.createElement('button');
+                toggle.type = 'button';
+                toggle.className = 'categoria-toggle';
+                toggle.setAttribute('aria-expanded', 'false');
+                toggle.setAttribute('aria-controls', 'cat-panel-' + cat.categoria_id);
 
                 const title = document.createElement('h4');
+                title.id = 'cat-title-' + cat.categoria_id;
                 title.className = 'categoria-title';
                 title.textContent = String(cat.categoria_nombre || '').toUpperCase();
 
-                // Click / Enter para navegar
-                const go = () => scrollToId('cat-' + cat.categoria_id);
-                card.addEventListener('click', go);
+                toggle.appendChild(title);
+                header.appendChild(toggle);
+
+                // Panel con subcategorías
+                const panel = document.createElement('div');
+                panel.id = 'cat-panel-' + cat.categoria_id;
+                panel.className = 'categoria-panel';
+                panel.hidden = true;
+
+                const subGrid = document.createElement('div');
+                subGrid.className = 'categoria-sublist';
+
+                sortByOrden(cat.subcategorias).forEach(sub => {
+                    const a = document.createElement('a');
+                    a.href = '#sub-' + sub.subcategoria_id;
+                    a.textContent = sub.subcategoria_nombre;
+                    a.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        scrollToId('sub-' + sub.subcategoria_id);
+                        // opcional: cerrar la tarjeta tras navegar
+                        toggle.setAttribute('aria-expanded', 'false');
+                        panel.hidden = true;
+                        card.classList.remove('open');
+                    });
+                    subGrid.appendChild(a);
+                });
+
+                panel.appendChild(subGrid);
+
+                // Toggle de apertura/cierre
+                const onToggle = () => {
+                    const open = toggle.getAttribute('aria-expanded') === 'true';
+                    const willOpen = !open;
+                    toggle.setAttribute('aria-expanded', String(willOpen));
+                    panel.hidden = !willOpen;
+                    card.classList.toggle('open', willOpen);
+                };
+                toggle.addEventListener('click', onToggle);
+                // soporte teclado desde la tarjeta completa (Enter/Espacio)
                 card.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        go();
+                        onToggle();
                     }
                 });
 
-                card.appendChild(title);
+                card.appendChild(header);
+                card.appendChild(panel);
                 grid.appendChild(card);
             });
 
             $cat.innerHTML = '';
             $cat.appendChild(grid);
         }
+
+        // Mejora: si el hash cambia por enlaces internos, aplicar scroll con offset suave
+        window.addEventListener('hashchange', () => {
+            const id = (location.hash || '').replace('#', '');
+            if (id) scrollToId(id);
+        });
 
 
         function buildMenu(grouped) {
