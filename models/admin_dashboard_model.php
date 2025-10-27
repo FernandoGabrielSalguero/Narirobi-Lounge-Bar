@@ -105,23 +105,41 @@ class AdminDashboardModel
 
     public function deleteCategory(int $id): bool
     {
-        // Borrado en cascada lógico:
-        // 1) Eliminar productos asociados a la categoría
-        // 2) Eliminar relaciones en tabla puente
-        // 3) Eliminar la categoría
+        // Reasignación preservando productos:
+        // 1) Obtener/crear pareja de resguardo (categoria "Sin asignar", subcategoria "Sin asignar") y su relación en la tabla puente.
+        // 2) Reasignar productos que tengan esta categoría a la pareja de resguardo.
+        // 3) Borrar relaciones de la categoría en la tabla puente.
+        // 4) Borrar la categoría.
         $this->pdo->beginTransaction();
         try {
-            // 1) Productos por categoría
-            $stP = $this->pdo->prepare("DELETE FROM productos WHERE categoria = :id");
-            $stP->execute([':id' => $id]);
+            // Proteger categoría de sistema
+            $placeholderCatId = $this->getOrCreatePlaceholderCategory();
+            if ($id === $placeholderCatId) {
+                throw new \RuntimeException('No se puede eliminar la categoría de sistema "Sin asignar".');
+            }
+            $placeholderSubId = $this->getOrCreatePlaceholderSubcategory();
+            $this->ensurePairRelation($placeholderCatId, $placeholderSubId);
 
-            // 2) Relaciones puente
-            $st = $this->pdo->prepare("DELETE FROM categoria_subcategoria WHERE category_id = :id");
-            $st->execute([':id' => $id]);
+            // 2) Reasignar productos (con FK compuesto, debo setear ambas columnas a una pareja válida)
+            $stP = $this->pdo->prepare("
+            UPDATE productos
+            SET categoria = :cat_placeholder,
+                subcategoria = :sub_placeholder
+            WHERE categoria = :old_cat
+        ");
+            $stP->execute([
+                ':cat_placeholder' => $placeholderCatId,
+                ':sub_placeholder' => $placeholderSubId,
+                ':old_cat'         => $id,
+            ]);
 
-            // 3) Categoría
-            $st2 = $this->pdo->prepare("DELETE FROM categorias WHERE id = :id");
-            $st2->execute([':id' => $id]);
+            // 3) Borrar relaciones puente
+            $stRel = $this->pdo->prepare("DELETE FROM categoria_subcategoria WHERE category_id = :id");
+            $stRel->execute([':id' => $id]);
+
+            // 4) Borrar categoría
+            $stCat = $this->pdo->prepare("DELETE FROM categorias WHERE id = :id");
+            $stCat->execute([':id' => $id]);
 
             $this->pdo->commit();
             return true;
@@ -130,7 +148,6 @@ class AdminDashboardModel
             throw $e;
         }
     }
-
 
     /* =======================
      *    SUBCATEGORÍAS
@@ -173,23 +190,41 @@ class AdminDashboardModel
 
     public function deleteSubcategory(int $id): bool
     {
-        // Borrado en cascada lógico:
-        // 1) Eliminar productos asociados a la subcategoría
-        // 2) Eliminar relaciones en tabla puente
-        // 3) Eliminar la subcategoría
+        // Reasignación preservando productos:
+        // 1) Obtener/crear pareja de resguardo (categoria "Sin asignar", subcategoria "Sin asignar") y su relación.
+        // 2) Reasignar productos que tengan esta subcategoría a la pareja de resguardo.
+        // 3) Borrar relaciones de la subcategoría en la tabla puente.
+        // 4) Borrar la subcategoría.
         $this->pdo->beginTransaction();
         try {
-            // 1) Productos por subcategoría
-            $stP = $this->pdo->prepare("DELETE FROM productos WHERE subcategoria = :id");
-            $stP->execute([':id' => $id]);
+            // Proteger subcategoría de sistema
+            $placeholderSubId = $this->getOrCreatePlaceholderSubcategory();
+            if ($id === $placeholderSubId) {
+                throw new \RuntimeException('No se puede eliminar la subcategoría de sistema "Sin asignar".');
+            }
+            $placeholderCatId = $this->getOrCreatePlaceholderCategory();
+            $this->ensurePairRelation($placeholderCatId, $placeholderSubId);
 
-            // 2) Relaciones puente
-            $st = $this->pdo->prepare("DELETE FROM categoria_subcategoria WHERE subcategory_id = :id");
-            $st->execute([':id' => $id]);
+            // 2) Reasignar productos (con FK compuesto)
+            $stP = $this->pdo->prepare("
+            UPDATE productos
+            SET categoria = :cat_placeholder,
+                subcategoria = :sub_placeholder
+            WHERE subcategoria = :old_sub
+        ");
+            $stP->execute([
+                ':cat_placeholder' => $placeholderCatId,
+                ':sub_placeholder' => $placeholderSubId,
+                ':old_sub'         => $id,
+            ]);
 
-            // 3) Subcategoría
-            $st2 = $this->pdo->prepare("DELETE FROM subcategorias WHERE id = :id");
-            $st2->execute([':id' => $id]);
+            // 3) Borrar relaciones puente
+            $stRel = $this->pdo->prepare("DELETE FROM categoria_subcategoria WHERE subcategory_id = :id");
+            $stRel->execute([':id' => $id]);
+
+            // 4) Borrar subcategoría
+            $stSub = $this->pdo->prepare("DELETE FROM subcategorias WHERE id = :id");
+            $stSub->execute([':id' => $id]);
 
             $this->pdo->commit();
             return true;
@@ -198,6 +233,8 @@ class AdminDashboardModel
             throw $e;
         }
     }
+
+
 
     /* =======================
      *      RELACIONES
@@ -243,6 +280,75 @@ class AdminDashboardModel
         $st = $this->pdo->prepare($sql);
         return $st->execute([':c' => $categoryId, ':s' => $subcategoryId]);
     }
+
+    /**
+     * Obtiene o crea la categoría "Sin asignar" (estado=0, orden=0).
+     */
+    private function getOrCreatePlaceholderCategory(): int
+    {
+        // Intentar obtener
+        $st = $this->pdo->prepare("SELECT id FROM categorias WHERE nombre = :n LIMIT 1");
+        $st->execute([':n' => 'Sin asignar']);
+        $id = (int)($st->fetchColumn() ?: 0);
+        if ($id > 0) return $id;
+
+        // Crear (evitar colisiones por UNIQUE nombre)
+        $stIns = $this->pdo->prepare("
+        INSERT IGNORE INTO categorias (nombre, estado, orden, created_at, updated_at)
+        VALUES ('Sin asignar', 0, 0, NOW(), NOW())
+    ");
+        $stIns->execute();
+
+        // Releer
+        $st2 = $this->pdo->prepare("SELECT id FROM categorias WHERE nombre = :n LIMIT 1");
+        $st2->execute([':n' => 'Sin asignar']);
+        $id = (int)($st2->fetchColumn() ?: 0);
+        if ($id <= 0) {
+            throw new \RuntimeException('No se pudo crear/obtener la categoría de sistema "Sin asignar".');
+        }
+        return $id;
+    }
+
+    /**
+     * Obtiene o crea la subcategoría "Sin asignar" (estado=0, orden=0).
+     */
+    private function getOrCreatePlaceholderSubcategory(): int
+    {
+        // Intentar obtener
+        $st = $this->pdo->prepare("SELECT id FROM subcategorias WHERE nombre = :n LIMIT 1");
+        $st->execute([':n' => 'Sin asignar']);
+        $id = (int)($st->fetchColumn() ?: 0);
+        if ($id > 0) return $id;
+
+        // Crear (evitar colisiones por UNIQUE nombre)
+        $stIns = $this->pdo->prepare("
+        INSERT IGNORE INTO subcategorias (nombre, estado, orden, created_at, updated_at)
+        VALUES ('Sin asignar', 0, 0, NOW(), NOW())
+    ");
+        $stIns->execute();
+
+        // Releer
+        $st2 = $this->pdo->prepare("SELECT id FROM subcategorias WHERE nombre = :n LIMIT 1");
+        $st2->execute([':n' => 'Sin asignar']);
+        $id = (int)($st2->fetchColumn() ?: 0);
+        if ($id <= 0) {
+            throw new \RuntimeException('No se pudo crear/obtener la subcategoría de sistema "Sin asignar".');
+        }
+        return $id;
+    }
+
+    /**
+     * Garantiza que exista la relación (category_id, subcategory_id) en la tabla puente.
+     */
+    private function ensurePairRelation(int $categoryId, int $subcategoryId): void
+    {
+        $st = $this->pdo->prepare("
+        INSERT IGNORE INTO categoria_subcategoria (category_id, subcategory_id, created_at)
+        VALUES (:c, :s, NOW())
+    ");
+        $st->execute([':c' => $categoryId, ':s' => $subcategoryId]);
+    }
+
 
     /* =======================
      *        IMÁGENES
