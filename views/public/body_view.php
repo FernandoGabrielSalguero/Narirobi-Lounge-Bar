@@ -1,12 +1,13 @@
 <?php
 
 declare(strict_types=1); ?>
-<!-- Fuentes de Google con prioridad -->
+<!-- Fuente única: Forum -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700&family=Forum&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Forum&display=swap" rel="stylesheet">
 
 <main id="app-main" class="carta">
+
 
     <!-- Carrusel -->
     <section class="carousel" aria-label="Galería de imágenes destacadas">
@@ -50,9 +51,16 @@ declare(strict_types=1); ?>
         --spacing: 16px;
         --radius: 16px;
         --header-offset: 96px;
-        /* Tipografías */
-        --font-sans: "DM Sans", system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
-        --font-display: "Forum", Georgia, "Times New Roman", serif;
+    }
+
+    /* ====== Tipografía global única ====== */
+    html,
+    body,
+    * {
+        font-family: "Forum", cursive !important;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
     }
 
     html,
@@ -385,14 +393,9 @@ declare(strict_types=1); ?>
 
     .categoria-sublist {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: 1fr;
+        /* una sola columna */
         gap: 8px;
-    }
-
-    @media (min-width: 768px) {
-        .categoria-sublist {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
     }
 
     .categoria-sublist a {
@@ -408,6 +411,12 @@ declare(strict_types=1); ?>
         background: rgba(255, 255, 255, 0.18);
     }
 
+    .categoria-sublist a,
+    .sub-list a {
+        line-height: 1.25;
+        word-break: normal;
+        white-space: normal;
+    }
 
     /* Anclas con offset para evitar que el header tape el título */
     .anchor-offset {
