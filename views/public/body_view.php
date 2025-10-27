@@ -95,6 +95,23 @@ declare(strict_types=1); ?>
     display: block;
 }
 
+/* FAB principal (menú) */
+.fab{
+  position: fixed;
+  right: var(--fab-gap);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--fab-gap) + 56px); /* <- subir 56px (o lo que mida tu barra inferior) */
+  z-index: 1200; /* mayor que cualquier footer/banner */
+}
+
+/* FAB secundario (sube al menú) */
+.fab-up{
+  position: fixed;
+  right: var(--fab-gap);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--fab-gap) + var(--fab-size) + 96px); /* deja un nivel por encima del principal */
+  z-index: 1200;
+}
+
+
     /* ====== Tipografía global única ====== */
     html,
     body,
