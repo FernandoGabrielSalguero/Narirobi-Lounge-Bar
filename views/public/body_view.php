@@ -43,8 +43,21 @@ declare(strict_types=1); ?>
 </main>
 
 <!-- Botones menú-->
-    <button id="fabMenu" class="fab" aria-haspopup="true" aria-controls="sideMenu" aria-expanded="false">☰</button>
-    <button id="btnToMenu" class="fab fab-up" aria-label="Ir al menú principal" type="button">↑</button>
+<button id="fabMenu" class="fab" aria-label="Abrir menú" aria-haspopup="true" aria-controls="sideMenu" aria-expanded="false" type="button">
+    <!-- ícono hamburguesa SVG -->
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <rect x="3" y="6" width="18" height="2" rx="1"></rect>
+        <rect x="3" y="11" width="18" height="2" rx="1"></rect>
+        <rect x="3" y="16" width="18" height="2" rx="1"></rect>
+    </svg>
+</button>
+<button id="btnToMenu" class="fab fab-up" aria-label="Ir al menú principal" type="button">
+    <!-- ícono flecha arriba SVG -->
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M12 5l-7 7h4v7h6v-7h4z"></path>
+    </svg>
+</button>
+
 
 <style>
     :root {
@@ -76,6 +89,13 @@ declare(strict_types=1); ?>
         justify-content: center;
         pointer-events: auto;
     }
+
+    .fab svg, .fab-up svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+    display: block;
+}
 
     /* ====== Tipografía global única ====== */
     html,
@@ -203,7 +223,6 @@ declare(strict_types=1); ?>
         justify-content: center;
         pointer-events: auto;
     }
-
 
     .sidemenu {
         position: fixed;
@@ -819,16 +838,10 @@ declare(strict_types=1); ?>
             $cat.appendChild(grid);
         }
 
-        // Mejora: si el hash cambia por enlaces internos, aplicar scroll con offset suave
-        window.addEventListener('hashchange', () => {
-            const id = (location.hash || '').replace('#', '');
-            if (id) scrollToId(id);
-        });
-
-        window.addEventListener('hashchange', () => {
-            const id = (location.hash || '').slice(1);
-            if (id) navigateTo(id);
-        });
+window.addEventListener('hashchange', () => {
+    const id = (location.hash || '').slice(1);
+    if (id) navigateTo(id);
+});
 
         function buildMenu(grouped) {
             $nav.innerHTML = '';
@@ -997,6 +1010,13 @@ declare(strict_types=1); ?>
         $fab.addEventListener('click', () => toggleMenu());
         $close.addEventListener('click', () => toggleMenu(false));
         $backdrop.addEventListener('click', () => toggleMenu(false));
+
+
+        $fab.addEventListener('click', () => {
+    const willOpen = !$menu.classList.contains('open');
+    toggleMenu(willOpen);
+    $fab.setAttribute('aria-expanded', String(willOpen));
+});
 
         // Carga inicial
         fetch(API, {
