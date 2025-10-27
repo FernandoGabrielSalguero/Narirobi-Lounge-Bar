@@ -20,7 +20,8 @@ declare(strict_types=1); ?>
     </section>
 
     <!-- Menú lateral flotante -->
-    <button id="fabMenu" class="fab" aria-haspopup="true" aria-controls="sideMenu" aria-expanded="false">☰</button>
+<button id="fabMenu" class="fab" aria-haspopup="true" aria-controls="sideMenu" aria-expanded="false">☰</button>
+<button id="btnToMenu" class="fab fab-up" aria-label="Ir al menú principal" type="button">↑</button>
     <aside id="sideMenu" class="sidemenu" aria-hidden="true" inert tabindex="-1">
         <header class="sidemenu-header">
             <div class="sidemenu-brand">
@@ -53,6 +54,23 @@ declare(strict_types=1); ?>
         --header-offset: 96px;
     }
 
+    /* Botón flotante secundario (volver al menú principal) */
+.fab-up{
+    position: fixed;
+    right: 84px;   /* separarlo del FAB principal */
+    bottom: 16px;
+    width: 56px;
+    height: 56px;
+    border-radius: 999px;
+    border: none;
+    background: var(--color-acento);
+    color: #fff;
+    font-size: 22px;
+    cursor: pointer;
+    z-index: 30;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+}
+
     /* ====== Tipografía global única ====== */
     html,
     body,
@@ -63,21 +81,6 @@ declare(strict_types=1); ?>
         text-rendering: optimizeLegibility;
     }
 
-    html,
-    body {
-        font-family: var(--font-sans);
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        text-rendering: optimizeLegibility;
-    }
-
-    h1,
-    h2,
-    h3,
-    h4,
-    .categoria-title {
-        font-family: var(--font-display);
-    }
 
     .carta {
         padding: 0;
@@ -584,6 +587,14 @@ declare(strict_types=1); ?>
         const $close = document.getElementById('closeMenu');
         const $backdrop = document.getElementById('backdrop');
 
+const $btnToMenu = document.getElementById('btnToMenu');
+if ($btnToMenu) {
+    $btnToMenu.addEventListener('click', () => {
+        navigateTo('categorias');
+    });
+}
+
+
         let slideIndex = 0;
         let autoTimer = null;
         let slidesCount = 0;
@@ -689,15 +700,24 @@ declare(strict_types=1); ?>
             });
         }
 
-        // Scroll con offset para no tapar títulos con el header
+      // Scroll con offset (usa .anchor-offset y espera al reflow si es necesario)
         function scrollToId(id) {
             const el = document.getElementById(id);
             if (!el) return;
-            el.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+// Navega a un id, ejecutando una acción previa (cerrar acordeón/menú) y
+// esperando dos frames para evitar que el header tape el título tras el reflow.
+        function navigateTo(id, beforeAction) {
+            try { if (typeof beforeAction === 'function') beforeAction(); } catch (_) {}
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    scrollToId(id);
+                });
             });
         }
+
 
         // Construye tarjetas de categorías como acordeón (muestra subcategorías al expandir)
         function buildCategoryCards(grouped) {
@@ -744,13 +764,14 @@ declare(strict_types=1); ?>
                     a.href = '#sub-' + sub.subcategoria_id;
                     a.textContent = sub.subcategoria_nombre;
                     a.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        scrollToId('sub-' + sub.subcategoria_id);
-                        // opcional: cerrar la tarjeta tras navegar
-                        toggle.setAttribute('aria-expanded', 'false');
-                        panel.hidden = true;
-                        card.classList.remove('open');
-                    });
+    e.preventDefault();
+    navigateTo('sub-' + sub.subcategoria_id, () => {
+        toggle.setAttribute('aria-expanded', 'false');
+        panel.hidden = true;
+        card.classList.remove('open');
+    });
+});
+
                     subGrid.appendChild(a);
                 });
 
@@ -812,10 +833,12 @@ declare(strict_types=1); ?>
                     a.href = '#sub-' + sub.subcategoria_id;
                     a.textContent = sub.subcategoria_nombre;
                     a.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        scrollToId('sub-' + sub.subcategoria_id);
-                        toggleMenu(false);
-                    });
+    e.preventDefault();
+    navigateTo('sub-' + sub.subcategoria_id, () => {
+        toggleMenu(false);
+    });
+});
+
                     subList.appendChild(a);
                 });
 
