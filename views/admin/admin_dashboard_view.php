@@ -58,7 +58,7 @@ $email = $user['email'] ?? 'Sin email';
                     </li>
                 </ul>
             </nav>
-            <div csidebar-footer">
+            <div class="sidebar-footer">
                 <button class="btn-icon" onclick="toggleSidebar()">
                     <span class="material-icons" id="collapseIcon">chevron_left</span>
                 </button>
@@ -212,6 +212,35 @@ $email = $user['email'] ?? 'Sin email';
                         </div>
                     </div>
                 </div>
+
+                <!-- ====== Subcategorías: editar nombre / eliminar ====== -->
+                <div class="card tabla-card" id="card-subcategorias" style="margin-top:1rem;">
+                    <h2>Subcategorías</h2>
+                    <div class="form-grid grid-3" role="region" aria-label="ABM Subcategorías">
+                        <div class="input-group" style="grid-column:1 / -1;">
+                            <label for="filtro_subcategorias">Filtrar subcategorías</label>
+                            <div class="input-icon input-icon-name">
+                                <input type="text" id="filtro_subcategorias" placeholder="Escribí para filtrar por nombre" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tabla-wrapper">
+                        <table class="data-table" id="tabla-subcategorias">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Subcategoría</th>
+                                    <th>Estado</th>
+                                    <th style="width:120px;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-subcategorias">
+                                <!-- filas via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
 
                 <!-- Imágenes: subir / listar / eliminar -->
                 <div class="card" id="card-media">
@@ -432,6 +461,51 @@ $email = $user['email'] ?? 'Sin email';
                     border: 1px solid rgba(0, 0, 0, .08);
                     border-radius: 999px;
                     background: #f8fafc;
+                }
+
+                /* Icon-only actions */
+                .icon-btn {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 8px;
+                    border: 1px solid rgba(0, 0, 0, .08);
+                    background: #fff;
+                    cursor: pointer;
+                }
+
+                .icon-btn:hover {
+                    box-shadow: 0 4px 10px rgba(0, 0, 0, .08);
+                    transform: translateY(-1px);
+                }
+
+                .icon-stack {
+                    display: flex;
+                    gap: .35rem;
+                    flex-wrap: wrap;
+                }
+
+                /* Categoría: icono + input */
+                .cat-name-wrap {
+                    display: flex;
+                    align-items: center;
+                    gap: .5rem;
+                }
+
+                .cat-icon {
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 6px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    border: 1px solid rgba(0, 0, 0, .08);
+                }
+
+                .cat-icon .material-icons {
+                    font-size: 18px;
                 }
             </style>
 
@@ -675,6 +749,29 @@ $email = $user['email'] ?? 'Sin email';
                     // --- UI refs ---
                     const tbody = $('#tbody-categorias');
                     const filtroCategorias = $('#filtro_categorias');
+                    const tbodySubs = document.querySelector('#tbody-subcategorias');
+                    const filtroSubs = document.querySelector('#filtro_subcategorias');
+
+                    // Mapa simple de iconos por nombre de categoría (case-insensitive)
+                    const ICONOS_CATEGORIA = {
+                        'tragos': 'local_bar',
+                        'cocktails': 'local_bar',
+                        'vinos': 'wine_bar',
+                        'cervezas': 'sports_bar',
+                        'comidas': 'restaurant',
+                        'platos': 'restaurant',
+                        'postres': 'icecream',
+                        'cafetería': 'local_cafe',
+                        'cafe': 'local_cafe',
+                        'promo': 'local_offer',
+                        'sin alcohol': 'emoji_food_beverage'
+                    };
+                    const iconoCategoria = (nombre) => {
+                        if (!nombre) return 'category';
+                        const key = nombre.trim().toLowerCase();
+                        return ICONOS_CATEGORIA[key] || 'category';
+                    };
+
 
                     // --- API ---
                     async function listarCategorias() {
@@ -824,13 +921,18 @@ $email = $user['email'] ?? 'Sin email';
                             tr.innerHTML = `
                     <td>${idx+1}</td>
                     <td>
-                        <div class="input-group" style="margin:0">
-                            <label for="cat_${c.id}" class="sr-only">Editar nombre</label>
-                            <div class="input-icon input-icon-name">
-                                <input type="text" id="cat_${c.id}" value="${c.nombre}" aria-label="Nombre de categoría ${c.nombre}" />
-                            </div>
-                        </div>
-                    </td>
+    <div class="cat-name-wrap">
+        <span class="cat-icon" title="Categoría: ${c.nombre}">
+            <span class="material-icons">${iconoCategoria(c.nombre)}</span>
+        </span>
+        <div class="input-group" style="margin:0">
+            <label for="cat_${c.id}" class="sr-only">Editar nombre</label>
+            <div class="input-icon input-icon-name">
+                <input type="text" id="cat_${c.id}" value="${c.nombre}" aria-label="Nombre de categoría ${c.nombre}" />
+            </div>
+        </div>
+    </div>
+</td>
                     <td>
                         <span class="badge ${c.estado ? 'success' : 'warning'}">${c.estado ? 'Activa' : 'Inactiva'}</span>
                     </td>
@@ -852,16 +954,72 @@ $email = $user['email'] ?? 'Sin email';
                         </div>
                     </td>
                     <td>
-                        <div class="acciones-grid">
-                            <button class="btn btn-aceptar btn-guardar-cat" data-id="${c.id}">Guardar</button>
-                            <button class="btn btn-cancelar btn-toggle-cat" data-id="${c.id}">${c.estado ? 'Desactivar' : 'Activar'}</button>
-                            <button class="btn btn-cancelar btn-eliminar-cat" data-id="${c.id}">Eliminar</button>
-                        </div>
-                    </td>
+    <div class="icon-stack">
+        <button class="icon-btn btn-guardar-cat" data-id="${c.id}" title="Guardar" aria-label="Guardar">
+            <span class="material-icons">save</span>
+        </button>
+        <button class="icon-btn btn-toggle-cat" data-id="${c.id}" title="${c.estado ? 'Desactivar' : 'Activar'}" aria-label="${c.estado ? 'Desactivar' : 'Activar'}">
+            <span class="material-icons">${c.estado ? 'toggle_off' : 'toggle_on'}</span>
+        </button>
+        <button class="icon-btn btn-eliminar-cat" data-id="${c.id}" title="Eliminar" aria-label="Eliminar">
+            <span class="material-icons">delete</span>
+        </button>
+    </div>
+</td>
                 `;
                             tbody.appendChild(tr);
                         });
                     }
+
+                    // ===== Subcategorías: render + acciones (editar nombre) =====
+                    function filtrarSubs(list, term) {
+                        if (!term) return list;
+                        const t = term.trim().toLowerCase();
+                        return list.filter(s => s.nombre.toLowerCase().includes(t));
+                    }
+
+                    function renderSubcategorias() {
+                        if (!tbodySubs) return;
+                        const data = filtrarSubs(subcategorias, filtroSubs?.value || '');
+                        tbodySubs.innerHTML = '';
+                        if (!data.length) {
+                            tbodySubs.innerHTML = `<tr><td colspan="4">Sin resultados.</td></tr>`;
+                            return;
+                        }
+                        data.forEach((s, idx) => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+            <td>${idx + 1}</td>
+            <td>
+                <div class="input-group" style="margin:0">
+                    <label for="sub_${s.id}" class="sr-only">Editar nombre</label>
+                    <div class="input-icon input-icon-name">
+                        <input type="text" id="sub_${s.id}" value="${s.nombre}" aria-label="Nombre de subcategoría ${s.nombre}" />
+                    </div>
+                </div>
+            </td>
+            <td>
+                <span class="badge ${s.estado ? 'success' : 'warning'}">${s.estado ? 'Activa' : 'Inactiva'}</span>
+            </td>
+            <td>
+                <div class="icon-stack">
+                    <button class="icon-btn btn-guardar-sub" data-id="${s.id}" title="Guardar" aria-label="Guardar">
+                        <span class="material-icons">save</span>
+                    </button>
+                    <button class="icon-btn btn-toggle-sub" data-id="${s.id}" title="${s.estado ? 'Desactivar' : 'Activar'}" aria-label="${s.estado ? 'Desactivar' : 'Activar'}">
+                        <span class="material-icons">${s.estado ? 'toggle_off' : 'toggle_on'}</span>
+                    </button>
+                    <button class="icon-btn btn-eliminar-sub" data-id="${s.id}" title="Eliminar" aria-label="Eliminar">
+                        <span class="material-icons">delete</span>
+                    </button>
+                </div>
+            </td>
+        `;
+                            tbodySubs.appendChild(tr);
+                        });
+                    }
+
+
 
                     async function abrirPanelSubs(categoryId, btn, panel) {
                         try {
@@ -958,11 +1116,13 @@ $email = $user['email'] ?? 'Sin email';
                         if (!e.target.closest('.subs-dropdown')) cerrarTodosLosPanels();
                     });
 
-                    // Guardar/activar/eliminar categoría
+                    // Guardar/activar/eliminar categoría + subcategoría
                     document.addEventListener('click', async (e) => {
+                        // --- Categorías ---
                         const bGuardar = e.target.closest('.btn-guardar-cat');
                         const bToggle = e.target.closest('.btn-toggle-cat');
                         const bEliminar = e.target.closest('.btn-eliminar-cat');
+
                         if (bGuardar) {
                             const id = parseInt(bGuardar.dataset.id, 10);
                             const input = $(`#cat_${id}`);
@@ -979,6 +1139,7 @@ $email = $user['email'] ?? 'Sin email';
                                 showAlert('error', err.message);
                             }
                         }
+
                         if (bToggle) {
                             const id = parseInt(bToggle.dataset.id, 10);
                             const cat = categorias.find(x => x.id === id);
@@ -994,19 +1155,74 @@ $email = $user['email'] ?? 'Sin email';
                                 showAlert('error', err.message);
                             }
                         }
+
                         if (bEliminar) {
                             const id = parseInt(bEliminar.dataset.id, 10);
-                            if (!confirm('¿Eliminar categoría? Esto quitará sus relaciones.')) return;
+                            if (!confirm('¿Eliminar categoría y sus relaciones?')) return;
                             try {
                                 await eliminarCategoria(id);
                                 showAlert('info', 'Categoría eliminada.');
-                                await listarCategorias();
+                                await Promise.all([listarCategorias(), listarSubcategorias()]);
+                                renderCategorias();
+                                renderSubcategorias();
+                            } catch (err) {
+                                showAlert('error', err.message);
+                            }
+                        }
+
+                        // --- Subcategorías ---
+                        const sGuardar = e.target.closest('.btn-guardar-sub');
+                        const sToggle = e.target.closest('.btn-toggle-sub');
+                        const sEliminar = e.target.closest('.btn-eliminar-sub');
+
+                        if (sGuardar) {
+                            const id = parseInt(sGuardar.dataset.id, 10);
+                            const input = document.querySelector(`#sub_${id}`);
+                            const nombre = (input?.value || '').trim();
+                            if (!nombre) return showAlert('error', 'El nombre no puede estar vacío.');
+                            try {
+                                await actualizarSubcategoria(id, {
+                                    nombre
+                                });
+                                showAlert('success', 'Subcategoría actualizada.');
+                                await listarSubcategorias();
+                                renderSubcategorias();
+                            } catch (err) {
+                                showAlert('error', err.message);
+                            }
+                        }
+
+                        if (sToggle) {
+                            const id = parseInt(sToggle.dataset.id, 10);
+                            const sub = subcategorias.find(x => x.id === id);
+                            if (!sub) return;
+                            try {
+                                await actualizarSubcategoria(id, {
+                                    estado: sub.estado ? 0 : 1
+                                });
+                                showAlert('info', 'Estado de la subcategoría actualizado.');
+                                await listarSubcategorias();
+                                renderSubcategorias();
+                            } catch (err) {
+                                showAlert('error', err.message);
+                            }
+                        }
+
+                        if (sEliminar) {
+                            const id = parseInt(sEliminar.dataset.id, 10);
+                            if (!confirm('¿Eliminar subcategoría y sus relaciones?')) return;
+                            try {
+                                await eliminarSubcategoria(id);
+                                showAlert('info', 'Subcategoría eliminada.');
+                                await Promise.all([listarSubcategorias(), listarCategorias()]);
+                                renderSubcategorias();
                                 renderCategorias();
                             } catch (err) {
                                 showAlert('error', err.message);
                             }
                         }
                     });
+
 
                     // Altas rápidas
                     $('#form-add-categoria').addEventListener('submit', async (e) => {
@@ -1049,11 +1265,17 @@ $email = $user['email'] ?? 'Sin email';
                         }
                     });
 
+                    // Filtro subcategorías
+                    if (filtroSubs) {
+                        filtroSubs.addEventListener('input', renderSubcategorias);
+                    }
+
                     // Inicial
                     (async function init() {
                         try {
                             await Promise.all([listarCategorias(), listarSubcategorias()]);
                             renderCategorias();
+                            renderSubcategorias();
                         } catch (err) {
                             showAlert('error', err.message);
                         }

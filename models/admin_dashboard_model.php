@@ -105,13 +105,24 @@ class AdminDashboardModel
 
     public function deleteCategory(int $id): bool
     {
-        // eliminar relaciones primero por FK
+        // Borrado en cascada lógico:
+        // 1) Eliminar productos asociados a la categoría
+        // 2) Eliminar relaciones en tabla puente
+        // 3) Eliminar la categoría
         $this->pdo->beginTransaction();
         try {
+            // 1) Productos por categoría
+            $stP = $this->pdo->prepare("DELETE FROM productos WHERE categoria = :id");
+            $stP->execute([':id' => $id]);
+
+            // 2) Relaciones puente
             $st = $this->pdo->prepare("DELETE FROM categoria_subcategoria WHERE category_id = :id");
             $st->execute([':id' => $id]);
+
+            // 3) Categoría
             $st2 = $this->pdo->prepare("DELETE FROM categorias WHERE id = :id");
             $st2->execute([':id' => $id]);
+
             $this->pdo->commit();
             return true;
         } catch (\Throwable $e) {
@@ -119,6 +130,7 @@ class AdminDashboardModel
             throw $e;
         }
     }
+
 
     /* =======================
      *    SUBCATEGORÍAS
@@ -161,12 +173,24 @@ class AdminDashboardModel
 
     public function deleteSubcategory(int $id): bool
     {
+        // Borrado en cascada lógico:
+        // 1) Eliminar productos asociados a la subcategoría
+        // 2) Eliminar relaciones en tabla puente
+        // 3) Eliminar la subcategoría
         $this->pdo->beginTransaction();
         try {
+            // 1) Productos por subcategoría
+            $stP = $this->pdo->prepare("DELETE FROM productos WHERE subcategoria = :id");
+            $stP->execute([':id' => $id]);
+
+            // 2) Relaciones puente
             $st = $this->pdo->prepare("DELETE FROM categoria_subcategoria WHERE subcategory_id = :id");
             $st->execute([':id' => $id]);
+
+            // 3) Subcategoría
             $st2 = $this->pdo->prepare("DELETE FROM subcategorias WHERE id = :id");
             $st2->execute([':id' => $id]);
+
             $this->pdo->commit();
             return true;
         } catch (\Throwable $e) {
