@@ -43,12 +43,10 @@ declare(strict_types=1); ?>
 </main>
 
 <!-- Botones menú-->
-<button id="fabMenu" class="fab" aria-label="Abrir menú" aria-haspopup="true" aria-controls="sideMenu" aria-expanded="false" type="button">
-    <!-- ícono hamburguesa SVG -->
+<button id="fabMenu" class="fab" aria-label="Abrir menú lateral" aria-haspopup="true" aria-controls="sideMenu" aria-expanded="false" type="button">
+    <!-- ícono de categorías SVG -->
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <rect x="3" y="6" width="18" height="2" rx="1"></rect>
-        <rect x="3" y="11" width="18" height="2" rx="1"></rect>
-        <rect x="3" y="16" width="18" height="2" rx="1"></rect>
+        <path d="M4 10h4V4H4v6zm6 0h10V4H10v6zm0 10h10v-6H10v6zM4 20h4v-6H4v6z"></path>
     </svg>
 </button>
 <button id="btnToMenu" class="fab fab-up" aria-label="Ir al menú principal" type="button">
@@ -69,11 +67,11 @@ declare(strict_types=1); ?>
         --header-offset: 96px;
     }
 
-    /* Botón flotante secundario (volver al menú principal) */
-    .fab-up {
-        position: fixed;
-        right: 84px; /* separarlo del FAB principal */
-        bottom: 16px;
+/* Botón flotante secundario (volver al menú principal) */
+.fab-up {
+    position: fixed;
+    right: 16px;
+    bottom: 88px; /* arriba del fab principal */
         width: 56px;
         height: 56px;
         border-radius: 999px;

@@ -3,14 +3,16 @@
   <div class="brand">NAIROBI Lounge Bar</div>
 
   <!-- Botón hamburguesa (abre panel con acciones) -->
-  <button id="menuToggle"
-          class="icon-btn"
-          aria-label="Abrir menú"
-          aria-haspopup="true"
-          aria-expanded="false"
-          aria-controls="menuPanel">
-    <span class="material-icons" aria-hidden="true">menu</span>
-  </button>
+<button id="menuToggle"
+        class="icon-btn"
+        aria-label="Abrir panel superior"
+        aria-haspopup="true"
+        aria-expanded="false"
+        aria-controls="menuPanel">
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/>
+    </svg>
+</button>
 
   <!-- Panel de menú -->
   <div id="menuPanel" class="menu-panel hidden" role="menu" aria-labelledby="menuToggle">
