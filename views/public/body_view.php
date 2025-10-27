@@ -416,6 +416,7 @@ declare(strict_types=1); ?>
         line-height: 1.25;
         word-break: normal;
         white-space: normal;
+        background-color: #00000062;
     }
 
     /* Anclas con offset para evitar que el header tape el título */
