@@ -167,16 +167,17 @@ declare(strict_types=1);
             outline-offset: 2px;
         }
 
-        /* A11y helpers */
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            border: 0;
+        /* Área de impresión: visible para el DOM pero fuera de pantalla (necesario para html2canvas) */
+        .offscreen {
+            position: fixed;
+            left: -9999px;
+            top: 0;
+            width: 1000px;
+            /* ancho cómodo para maquetar; jsPDF ajusta escala */
+            padding: 12px;
+            background: #ffffff;
+            color: #000;
+            display: block;
         }
     </style>
 </head>
@@ -242,7 +243,7 @@ declare(strict_types=1);
                     <div id="estructuraContainer" aria-label="Categorías" role="list"></div>
                 </div>
                 <!-- Área oculta para render de impresión -->
-                <div id="printArea" class="sr-only"></div>
+                <div id="printArea" class="offscreen"></div>
             </section>
         </div>
     </div>
@@ -293,9 +294,8 @@ declare(strict_types=1);
                     e.dataTransfer.setData('text/plain', idForDnd);
                 });
 
-                container.addEventListener('dragend', (e) => {
-                    const item = e.target.closest('[draggable="true"]');
-                    if (item) item.classList.remove('ghost');
+                container.addEventListener('dragend', () => {
+                    if (dragEl) dragEl.classList.remove('ghost');
                     dragEl = null;
                     container.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over'));
                 });
@@ -321,9 +321,11 @@ declare(strict_types=1);
 
                 container.addEventListener('drop', (e) => {
                     e.preventDefault();
+                    if (dragEl) dragEl.classList.remove('ghost');
                     container.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over'));
                     if (typeof onSort === 'function') onSort();
                 });
+                y
             }
 
             // --------- Render ----------
@@ -400,6 +402,9 @@ declare(strict_types=1);
                           </div>
                         </div>`;
                     }).join('');
+
+                // Acordeones cerrados por defecto
+                $estruct.querySelectorAll('.accordion').forEach(acc => acc.classList.add('collapsed'));
 
                 // Sortables de bloque
                 makeSortable($estruct, recomputeOrdersCategorias, '[data-level="cat"]', '.cat-accordion'); // categorías
@@ -558,13 +563,14 @@ declare(strict_types=1);
 
                 const $print = document.getElementById('printArea');
                 $print.innerHTML = '';
+                $print.style.background = '#ffffff'; // asegura fondo blanco
 
                 // Header
                 const header = document.createElement('div');
                 header.style.textAlign = 'center';
                 header.style.margin = '0 0 16px 0';
                 header.innerHTML = `
-                    <img src="../../assets/logo negro.png" alt="Logo" style="height:60px; display:block; margin:0 auto 8px;">
+                    <img src="../../assets/logo%20negro.png" alt="Logo" style="height:60px; display:block; margin:0 auto 8px;">
                     <h1 style="margin:0; font-size:24px;">Nuestro Menú</h1>
                 `;
                 $print.appendChild(header);
@@ -582,23 +588,30 @@ declare(strict_types=1);
 
                         // grid 2 columnas como en la captura
                         const grid = document.createElement('div');
-                        grid.style.display = 'grid';
-                        grid.style.gridTemplateColumns = '1fr 1fr';
-                        grid.style.gap = '12px';
+                        grid.className = 'grid2';
                         items.forEach(it => {
                             const card = document.createElement('div');
-                            card.style.border = '1px solid #ddd';
-                            card.style.borderRadius = '10px';
-                            card.style.padding = '10px 12px';
-                            card.style.display = 'flex';
-                            card.style.justifyContent = 'space-between';
-                            card.style.alignItems = 'center';
-                            card.innerHTML = `<div style="font-weight:700;">${it.nombre}</div><div>$ ${it.precio}</div>`;
+                            card.className = 'card';
+                            card.innerHTML = `<div class="name">${it.nombre}</div><div class="price">$ ${it.precio}</div>`;
                             grid.appendChild(card);
                         });
                         $print.appendChild(grid);
+
                     });
                 });
+
+                // Estilos inline del contenido a imprimir
+                const style = document.createElement('style');
+                style.textContent = `
+  #printArea h1,h2,h3{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; color:#1f2937; }
+  #printArea h2{ margin:16px 0 8px; text-align:center; font-size:22px; }
+  #printArea h3{ margin:8px 0 8px; text-align:center; font-size:18px; }
+  #printArea .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  #printArea .card{ border:1px solid #d1d5db; border-radius:12px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; }
+  #printArea .name{ font-weight:700; }
+  #printArea .price{ }
+`;
+                $print.appendChild(style);
 
                 return $print;
             }
@@ -615,7 +628,10 @@ declare(strict_types=1);
                 // Render con html2canvas y exportar con jsPDF
                 const canvas = await html2canvas($print, {
                     scale: 2,
-                    backgroundColor: '#ffffff'
+                    backgroundColor: '#ffffff',
+                    useCORS: true, // habilita carga de imágenes locales/ mismas origen
+                    allowTaint: true, // tolera imágenes sin CORS explícito
+                    logging: false
                 });
                 const imgData = canvas.toDataURL('image/png');
                 const {
