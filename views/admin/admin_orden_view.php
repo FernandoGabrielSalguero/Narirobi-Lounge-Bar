@@ -325,7 +325,6 @@ declare(strict_types=1);
                     container.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over'));
                     if (typeof onSort === 'function') onSort();
                 });
-                y
             }
 
             // --------- Render ----------
