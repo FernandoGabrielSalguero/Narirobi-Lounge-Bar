@@ -651,6 +651,29 @@ declare(strict_types=1);
                                 img.className = 'icon';
                                 left.appendChild(img);
                             }
+                            // "icono": puede ser URL/archivo o etiqueta de texto (p.ej. "sin_tacc")
+                            const isImageLike = (s) =>
+                                !!s && (/\.(png|jpe?g|gif|svg|webp)$/i.test(s) || /^https?:|^data:|^\.\.?\//i.test(s));
+                            const resolveIcon = (src) => {
+                                if (!src) return '';
+                                if (isImageLike(src)) return src;
+                                return src; // texto: lo mostraremos como badge, no como <img>
+                            };
+
+                            if (it.icono) {
+                                if (isImageLike(it.icono)) {
+                                    const img = document.createElement('img');
+                                    img.src = resolveIcon(it.icono);
+                                    img.alt = '';
+                                    img.className = 'icon';
+                                    left.appendChild(img);
+                                } else {
+                                    const badge = document.createElement('span');
+                                    badge.className = 'icon-badge';
+                                    badge.textContent = it.icono; // muestra la palabra (sin_tacc, vegano, etc.)
+                                    left.appendChild(badge);
+                                }
+                            }
 
                             const nameEl = document.createElement('div');
                             nameEl.className = 'name';

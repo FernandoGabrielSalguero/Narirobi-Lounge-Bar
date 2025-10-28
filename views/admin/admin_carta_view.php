@@ -197,9 +197,9 @@ $email = $user['email'] ?? 'Sin email';
                                     <span class="material-icons mi" aria-hidden="true">style</span>
                                     <select id="icono" name="icono">
                                         <option value="">Sin icono</option>
-                                        <option value="sin_tacc">sin tacc</option>
-                                        <option value="nuevo">nuevo</option>
-                                        <option value="promo">promo</option>
+                                        <option value="Sin Tacc">Sin TACC</option>
+                                        <option value="Nuevo">Nuevo</option>
+                                        <option value="Promo">Promo</option>
                                     </select>
                                 </div>
                             </div>
@@ -363,9 +363,9 @@ $email = $user['email'] ?? 'Sin email';
                             <span class="material-icons mi" aria-hidden="true">style</span>
                             <select id="edit_icono" name="icono">
                                 <option value="">Sin icono</option>
-                                <option value="sin_tacc">sin tacc</option>
-                                <option value="nuevo">nuevo</option>
-                                <option value="promo">promo</option>
+                                <option value="Sin Tacc">Sin TACC</option>
+                                <option value="Nuevo">Nuevo</option>
+                                <option value="Promo">Promo</option>
                             </select>
                         </div>
                     </div>
