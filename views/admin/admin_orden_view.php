@@ -597,7 +597,7 @@ declare(strict_types=1);
                 header.style.textAlign = 'center';
                 header.style.margin = '0 0 16px 0';
                 header.innerHTML = `
-    <img src="../../assets/logo%20negro.png" alt="Logo" style="height:60px; display:block; margin:0 auto 8px;">
+    <img src="../../assets/logo%20negro.png" alt="Logo" style="height:200px; display:block; margin:0 auto 8px;">
     <h1 style="margin:0; font-size:26px;">Nuestro Menú</h1>
   `;
                 $print.appendChild(header);
