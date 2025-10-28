@@ -540,7 +540,7 @@ declare(strict_types=1); ?>
         font-weight: 700;
         margin-left: 6px;
         background: var(--color-acento);
-        color: #fff;
+        color: #000000ff;
         vertical-align: middle;
         line-height: 1.8;
     }
