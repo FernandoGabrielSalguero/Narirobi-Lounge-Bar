@@ -232,7 +232,7 @@ declare(strict_types=1);
                     <div class="btn-row">
                         <button id="btnGuardar" class="btn btn-aceptar" aria-label="Guardar cambios de orden">Guardar cambios</button>
                         <button id="btnRevertir" class="btn btn-cancelar" aria-label="Revertir cambios no guardados">Revertir</button>
-                        <button id="btnImprimir" class="btn" aria-label="Imprimir selección">Imprimir</button>
+                        <button id="btnImprimir" class="btn btn-info" aria-label="Imprimir selección">Imprimir</button>
                     </div>
                 </div>
 
@@ -564,7 +564,7 @@ declare(strict_types=1);
                 header.style.textAlign = 'center';
                 header.style.margin = '0 0 16px 0';
                 header.innerHTML = `
-                    <img src="assets/logo%20negro.png" alt="Logo" style="height:60px; display:block; margin:0 auto 8px;">
+                    <img src="../../assets/logo negro.png" alt="Logo" style="height:60px; display:block; margin:0 auto 8px;">
                     <h1 style="margin:0; font-size:24px;">Nuestro Menú</h1>
                 `;
                 $print.appendChild(header);
