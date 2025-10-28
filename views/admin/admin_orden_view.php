@@ -383,7 +383,7 @@ declare(strict_types=1);
                                     ${pill(p.orden)}
                                     <div class="text-ellipsis">${p.nombre}</div>
                                   </div>
-                                ${endControl('prod', { id: p.id, nombre: p.nombre, categoria_nombre: c.nombre, subcategoria_nombre: s.nombre, precio: (p.precio ?? '') })}
+                                 ${endControl('prod', { ...p, categoria_nombre: c.nombre, subcategoria_nombre: s.nombre })}
                                 </div>
                             `).join('');
                             return `
