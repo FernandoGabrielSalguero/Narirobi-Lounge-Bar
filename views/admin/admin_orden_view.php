@@ -14,6 +14,9 @@ declare(strict_types=1);
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 
+    <!-- Tipografia -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Forum&display=swap">
+
     <!-- Framework CDN -->
     <link rel="stylesheet" href="https://www.fernandosalguero.com/cdn/assets/css/framework.css">
     <script src="https://www.fernandosalguero.com/cdn/assets/javascript/framework.js" defer></script>
@@ -338,16 +341,28 @@ declare(strict_types=1);
                     const catName = item.categoria_nombre || '';
                     const subName = item.subcategoria_nombre || '';
                     const price = (item && typeof item.precio !== 'undefined') ? item.precio : '';
+                    const a1 = item.aclaracion_1 ?? '';
+                    const a2 = item.aclaracion_2 ?? '';
+                    const a3 = item.aclaracion_3 ?? '';
+                    const det = item.detalle ?? '';
+                    const ico = item.icono ?? '';
+
                     return `
-                      <label class="prod-actions" title="Seleccionar para imprimir">
-                        <input type="checkbox" class="prod-select"
-                          data-producto-id="${item.id}"
-                          data-producto-nombre="${item.nombre}"
-                          data-precio="${price}"
-                          data-cat="${catName}"
-                          data-sub="${subName}">
-                      </label>`;
+    <label class="prod-actions" title="Seleccionar para imprimir">
+      <input type="checkbox" class="prod-select"
+        data-producto-id="${item.id}"
+        data-producto-nombre="${item.nombre || ''}"
+        data-precio="${price}"
+        data-aclaracion1="${a1}"
+        data-aclaracion2="${a2}"
+        data-aclaracion3="${a3}"
+        data-detalle="${det}"
+        data-icono="${ico}"
+        data-cat="${catName}"
+        data-sub="${subName}">
+    </label>`;
                 }
+
                 return `<span class="material-icons drag-handle" aria-hidden="true">drag_indicator</span>`;
             }
 
@@ -545,71 +560,169 @@ declare(strict_types=1);
             // --------- Impresión PDF ----------
             function construirPrintArea() {
                 const checks = [...document.querySelectorAll('.prod-select:checked')];
-                const byCatSub = new Map(); // Map(cat => Map(sub => [{nombre, precio}]))
+
+                // Agrupar por Cat/Sub
+                const byCatSub = new Map(); // Map(cat => Map(sub => [payload]))
                 checks.forEach(chk => {
-                    const cat = chk.getAttribute('data-cat') || 'Sin categoría';
-                    const sub = chk.getAttribute('data-sub') || 'Sin subcategoría';
-                    const nombre = chk.getAttribute('data-producto-nombre') || '';
-                    const precio = chk.getAttribute('data-precio') || '';
+                    const get = (attr) => chk.getAttribute(attr) || '';
+                    const payload = {
+                        nombre: get('data-producto-nombre'),
+                        precio: get('data-precio'),
+                        a1: get('data-aclaracion1'),
+                        a2: get('data-aclaracion2'),
+                        a3: get('data-aclaracion3'),
+                        detalle: get('data-detalle'),
+                        icono: get('data-icono')
+                    };
+                    const cat = get('data-cat') || 'Sin categoría';
+                    const sub = get('data-sub') || 'Sin subcategoría';
                     if (!byCatSub.has(cat)) byCatSub.set(cat, new Map());
                     const m = byCatSub.get(cat);
                     if (!m.has(sub)) m.set(sub, []);
-                    m.get(sub).push({
-                        nombre,
-                        precio
-                    });
+                    m.get(sub).push(payload);
                 });
 
                 const $print = document.getElementById('printArea');
                 $print.innerHTML = '';
-                $print.style.background = '#ffffff'; // asegura fondo blanco
+                $print.style.background = '#ffffff';
+
+                // Asegurar que la fuente esté disponible para html2canvas
+                const fontLink = document.createElement('link');
+                fontLink.rel = 'stylesheet';
+                fontLink.href = 'https://fonts.googleapis.com/css2?family=Forum&display=swap';
+                $print.appendChild(fontLink);
 
                 // Header
                 const header = document.createElement('div');
                 header.style.textAlign = 'center';
                 header.style.margin = '0 0 16px 0';
                 header.innerHTML = `
-                    <img src="../../assets/logo%20negro.png" alt="Logo" style="height:60px; display:block; margin:0 auto 8px;">
-                    <h1 style="margin:0; font-size:24px;">Nuestro Menú</h1>
-                `;
+    <img src="../../assets/logo%20negro.png" alt="Logo" style="height:60px; display:block; margin:0 auto 8px;">
+    <h1 style="margin:0; font-size:26px;">Nuestro Menú</h1>
+  `;
                 $print.appendChild(header);
 
-                // Contenido agrupado
+                // Helpers
+                const formatPrice = (v) => {
+                    if (v === null || v === undefined || v === '') return '';
+                    const n = Number(v);
+                    if (Number.isNaN(n)) return String(v);
+                    return '$ ' + n.toLocaleString('es-AR', {
+                        minimumFractionDigits: 0
+                    });
+                };
+                const makeChip = (txt) => {
+                    const span = document.createElement('span');
+                    span.className = 'chip';
+                    span.textContent = txt;
+                    return span;
+                };
+
+                // Contenido
                 byCatSub.forEach((subMap, cat) => {
                     const catEl = document.createElement('div');
-                    catEl.innerHTML = `<h2 style="text-align:center; margin:16px 0 8px; font-size:20px;">${cat}</h2>`;
+                    catEl.innerHTML = `<h2 class="h2">${cat}</h2>`;
                     $print.appendChild(catEl);
 
                     subMap.forEach((items, sub) => {
                         const subEl = document.createElement('div');
-                        subEl.innerHTML = `<h3 style="text-align:center; margin:8px 0 8px; font-size:18px;">${sub}</h3>`;
+                        subEl.innerHTML = `<h3 class="h3">${sub}</h3>`;
                         $print.appendChild(subEl);
 
-                        // grid 2 columnas como en la captura
                         const grid = document.createElement('div');
                         grid.className = 'grid2';
+
                         items.forEach(it => {
                             const card = document.createElement('div');
                             card.className = 'card';
-                            card.innerHTML = `<div class="name">${it.nombre}</div><div class="price">$ ${it.precio}</div>`;
+
+                            // Top row: nombre + precio + icono (opcional)
+                            const top = document.createElement('div');
+                            top.className = 'card-top';
+
+                            const left = document.createElement('div');
+                            left.className = 'title-wrap';
+
+                            // Icono (opcional) a la izquierda del título
+                            if (it.icono) {
+                                const img = document.createElement('img');
+                                img.src = it.icono;
+                                img.alt = '';
+                                img.className = 'icon';
+                                left.appendChild(img);
+                            }
+
+                            const nameEl = document.createElement('div');
+                            nameEl.className = 'name';
+                            nameEl.textContent = it.nombre || '';
+                            left.appendChild(nameEl);
+
+                            const priceEl = document.createElement('div');
+                            priceEl.className = 'price';
+                            priceEl.textContent = formatPrice(it.precio);
+
+                            top.appendChild(left);
+                            top.appendChild(priceEl);
+                            card.appendChild(top);
+
+                            // Detalle (opcional)
+                            if (it.detalle) {
+                                const det = document.createElement('div');
+                                det.className = 'detail';
+                                det.textContent = it.detalle;
+                                card.appendChild(det);
+                            }
+
+                            // Chips (aclaraciones) si hay
+                            const chips = [it.a1, it.a2, it.a3].filter(Boolean);
+                            if (chips.length) {
+                                const row = document.createElement('div');
+                                row.className = 'chips';
+                                chips.forEach(c => row.appendChild(makeChip(c)));
+                                card.appendChild(row);
+                            }
+
                             grid.appendChild(card);
                         });
-                        $print.appendChild(grid);
 
+                        $print.appendChild(grid);
                     });
                 });
 
-                // Estilos inline del contenido a imprimir
+                // Estilos del PDF (incluye la fuente Forum)
                 const style = document.createElement('style');
                 style.textContent = `
-  #printArea h1,h2,h3{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; color:#1f2937; }
-  #printArea h2{ margin:16px 0 8px; text-align:center; font-size:22px; }
-  #printArea h3{ margin:8px 0 8px; text-align:center; font-size:18px; }
+  #printArea, #printArea * {
+    font-family: 'Forum', cursive, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    color:#111;
+  }
+  #printArea h1,h2,h3 { color:#1f2937; }
+  #printArea .h2{ margin:16px 0 8px; text-align:center; font-size:22px; }
+  #printArea .h3{ margin:8px 0 12px; text-align:center; font-size:18px; }
+
   #printArea .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  #printArea .card{ border:1px solid #d1d5db; border-radius:12px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; }
-  #printArea .name{ font-weight:700; }
-  #printArea .price{ }
-`;
+
+  #printArea .card{
+    border:1px solid #d1d5db; border-radius:14px; padding:12px 14px;
+    display:flex; flex-direction:column; gap:8px; background:#fff;
+  }
+
+  #printArea .card-top{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  #printArea .title-wrap{ display:flex; align-items:center; gap:8px; min-width:0; }
+  #printArea .icon{ width:24px; height:24px; object-fit:contain; }
+  #printArea .name{ font-weight:700; font-size:16px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #printArea .price{ font-weight:700; font-size:15px; white-space:nowrap; }
+
+  #printArea .detail{
+    font-size:14px; line-height:1.35; color:#111; /* texto principal */
+  }
+
+  #printArea .chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  #printArea .chip{
+    display:inline-block; padding:4px 8px; border-radius:10px;
+    border:1px solid #e5e7eb; background:#f9fafb; font-size:12px;
+  }
+  `;
                 $print.appendChild(style);
 
                 return $print;

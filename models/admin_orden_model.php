@@ -40,11 +40,22 @@ final class AdminOrdenModel
 
         // Productos (solo columnas necesarias)
         $stmt = $this->pdo->query(
-            "SELECT id, nombre, orden, categoria AS categoria_id, subcategoria AS subcategoria_id
-             FROM productos
-             ORDER BY orden ASC, id ASC"
-        );
-        $prods = $stmt->fetchAll();
+    "SELECT
+        id,
+        nombre,
+        orden,
+        precio,
+        aclaracion_1,
+        aclaracion_2,
+        aclaracion_3,
+        detalle,
+        icono,
+        categoria  AS categoria_id,
+        subcategoria AS subcategoria_id
+     FROM productos
+     ORDER BY orden ASC, id ASC"
+);
+$prods = $stmt->fetchAll();
 
         // Mapear subcategorías por categoría
         $mapSubPorCat = [];
