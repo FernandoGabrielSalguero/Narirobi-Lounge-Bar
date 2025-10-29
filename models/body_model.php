@@ -81,83 +81,88 @@ final class BodyModel
    * ]
    */
   public function getGroupedProducts(): array
-  {
+{
     $sql = "
-                        SELECT
-                c.id  AS categoria_id,
-                c.nombre AS categoria_nombre,
-                s.id  AS subcategoria_id,
-                s.nombre AS subcategoria_nombre,
-                p.id,
-                p.orden,
-                p.precio,
-                p.nombre,
-                p.aclaracion_1,
-                p.aclaracion_2,
-                p.aclaracion_3,
-                p.detalle,
-                p.icono
-            FROM productos p
-            INNER JOIN categorias c   ON c.id = p.categoria AND c.estado = 1
-            INNER JOIN subcategorias s ON s.id = p.subcategoria AND s.estado = 1
-            ORDER BY 
-                c.orden ASC, 
-                s.orden ASC, 
-                p.orden ASC,
-                c.nombre ASC,
-                s.nombre ASC,
-                p.nombre ASC
-        ";
+        SELECT
+            c.id  AS categoria_id,
+            c.nombre AS categoria_nombre,
+            c.orden AS categoria_orden,
+            s.id  AS subcategoria_id,
+            s.nombre AS subcategoria_nombre,
+            s.orden AS subcategoria_orden,
+            p.id AS producto_id,
+            p.orden AS producto_orden,
+            p.precio,
+            p.nombre AS producto_nombre,
+            p.aclaracion_1,
+            p.aclaracion_2,
+            p.aclaracion_3,
+            p.detalle,
+            p.icono
+        FROM categoria_subcategoria cs
+        INNER JOIN categorias c ON c.id = cs.category_id AND c.estado = 1
+        INNER JOIN subcategorias s ON s.id = cs.subcategory_id AND s.estado = 1
+        LEFT JOIN productos p 
+            ON p.categoria = cs.category_id 
+           AND p.subcategoria = cs.subcategory_id
+        ORDER BY 
+            c.orden ASC, 
+            s.orden ASC,
+            p.orden ASC,
+            c.nombre ASC,
+            s.nombre ASC,
+            p.nombre ASC
+    ";
 
     $stmt = $this->pdo->query($sql);
     $rows = $stmt->fetchAll();
-    $hasIcon = true;
 
-    // Agrupar
     $byCat = [];
     foreach ($rows as $r) {
-      $catId = (int)$r['categoria_id'];
-      $subId = (int)$r['subcategoria_id'];
+        $catId = (int)$r['categoria_id'];
+        $subId = (int)$r['subcategoria_id'];
 
-      if (!isset($byCat[$catId])) {
-        $byCat[$catId] = [
-          'categoria_id' => $catId,
-          'categoria_nombre' => $r['categoria_nombre'],
-          'subcategorias' => []
-        ];
-      }
-      if (!isset($byCat[$catId]['subcategorias'][$subId])) {
-        $byCat[$catId]['subcategorias'][$subId] = [
-          'subcategoria_id' => $subId,
-          'subcategoria_nombre' => $r['subcategoria_nombre'],
-          'productos' => []
-        ];
-      }
+        if (!isset($byCat[$catId])) {
+            $byCat[$catId] = [
+                'categoria_id' => $catId,
+                'categoria_nombre' => $r['categoria_nombre'],
+                'orden' => (int)$r['categoria_orden'],
+                'subcategorias' => []
+            ];
+        }
 
-      $producto = [
-        'id' => (int)$r['id'],
-        'orden' => (int)$r['orden'],
-        'precio' => $r['precio'],
-        'nombre' => $r['nombre'],
-        'detalle' => $r['detalle'],
-        'aclaracion_1' => $r['aclaracion_1'] ?? null,
-        'aclaracion_2' => $r['aclaracion_2'] ?? null,
-        'aclaracion_3' => $r['aclaracion_3'] ?? null,
-      ];
-      if ($hasIcon) {
-        $producto['icono'] = $r['icono'] ?? null;
-      }
+        if (!isset($byCat[$catId]['subcategorias'][$subId])) {
+            $byCat[$catId]['subcategorias'][$subId] = [
+                'subcategoria_id' => $subId,
+                'subcategoria_nombre' => $r['subcategoria_nombre'],
+                'orden' => (int)$r['subcategoria_orden'],
+                'productos' => []
+            ];
+        }
 
-      $byCat[$catId]['subcategorias'][$subId]['productos'][] = $producto;
+        if (!empty($r['producto_id'])) {
+            $producto = [
+                'id' => (int)$r['producto_id'],
+                'orden' => (int)$r['producto_orden'],
+                'precio' => $r['precio'],
+                'nombre' => $r['producto_nombre'],
+                'detalle' => $r['detalle'],
+                'aclaracion_1' => $r['aclaracion_1'] ?? null,
+                'aclaracion_2' => $r['aclaracion_2'] ?? null,
+                'aclaracion_3' => $r['aclaracion_3'] ?? null,
+                'icono' => $r['icono'] ?? null,
+            ];
+            $byCat[$catId]['subcategorias'][$subId]['productos'][] = $producto;
+        }
     }
 
-    
-    // Normalizar índices de subcategorías
+    // Normalizar índices
     $result = [];
     foreach ($byCat as $cat) {
-      $cat['subcategorias'] = array_values($cat['subcategorias']);
-      $result[] = $cat;
+        $cat['subcategorias'] = array_values($cat['subcategorias']);
+        $result[] = $cat;
     }
     return $result;
-  }
+}
+
 }
